@@ -24,6 +24,7 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
   private int scale;
   private Base2ExponentialHistogramIndexer base2ExponentialHistogramIndexer;
   private long totalCount;
+  private int lengthChanged = 0;
 
   DoubleBase2ExponentialHistogramBuckets(int scale, int maxBuckets) {
     this.counts = new AdaptingCircularBufferCounter(maxBuckets);
@@ -51,6 +52,7 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
     this.scale = scale;
     this.base2ExponentialHistogramIndexer = Base2ExponentialHistogramIndexer.get(this.scale);
     this.counts.clear();
+    lengthChanged = 0;
   }
 
   boolean record(double value) {
@@ -79,15 +81,48 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
 
   @Override
   public List<Long> getBucketCounts() {
+    return getBucketCountsWithReusableList(null);
+  }
+
+  @SuppressWarnings("SystemOut")
+  List<Long> getBucketCountsWithReusableList(@Nullable List<Long> reusableLongList) {
     if (counts.isEmpty()) {
       return Collections.emptyList();
     }
+
     int length = counts.getIndexEnd() - counts.getIndexStart() + 1;
-    long[] countsArr = new long[length];
+
+    long[] countsArr;
+    if (reusableLongList == null) {
+      countsArr = new long[length];
+    } else {
+      long[] reusableLongArray = PrimitiveLongList.toArray(reusableLongList);
+      if (reusableLongArray.length != length) {
+        countsArr = replaceArray(reusableLongList, length);
+        lengthChanged++;
+        System.out.println(getClass().getName() + "@" + Integer.toHexString(hashCode())+": Changing array from "+reusableLongArray.length+ " to "+length);
+        if (lengthChanged > 1) {
+          System.out.println("MORE THEN 1 - "+lengthChanged+": "+getClass().getName() + "@" + Integer.toHexString(hashCode())+": Changing array from "+reusableLongArray.length+ " to "+length);
+        }
+
+      } else {
+        countsArr = reusableLongArray;
+      }
+    }
+
     for (int i = 0; i < length; i++) {
       countsArr[i] = counts.get(i + counts.getIndexStart());
     }
-    return PrimitiveLongList.wrap(countsArr);
+
+    return (reusableLongList == null) ? PrimitiveLongList.wrap(countsArr) : reusableLongList;
+  }
+
+  private static long[] replaceArray(List<Long> reusableLongList, int length) {
+
+    long[] countsArr;
+    countsArr = new long[length];
+    PrimitiveLongList.replaceArray(reusableLongList, countsArr);
+    return countsArr;
   }
 
   @Override

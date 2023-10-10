@@ -18,6 +18,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.internal.testing.slf4j.SuppressLogger;
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
+import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.InstrumentValueType;
@@ -70,7 +71,7 @@ public class SynchronousMetricStorageTest {
   private final Aggregator<LongPointData, LongExemplarData> aggregator =
       spy(
           ((AggregatorFactory) Aggregation.sum())
-              .createAggregator(DESCRIPTOR, ExemplarFilter.alwaysOff()));
+              .createAggregator(DESCRIPTOR, ExemplarFilter.alwaysOff(), MemoryMode.IMMUTABLE_DATA));
   private final AttributesProcessor attributesProcessor = AttributesProcessor.noop();
 
   @Test

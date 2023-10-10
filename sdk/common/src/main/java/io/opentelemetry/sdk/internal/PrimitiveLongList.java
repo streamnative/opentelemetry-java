@@ -46,9 +46,20 @@ public final class PrimitiveLongList {
     return values;
   }
 
+  /**
+   * Replaces the backing values array with a new one.
+   * @param list A list created by {@link PrimitiveLongList#wrap(long[])}.
+   * @param newArray the new values array to place in {@code list}
+   */
+  public static void replaceArray(List<Long> list, long[] newArray) {
+    if (list instanceof LongListImpl) {
+      ((LongListImpl) list).replaceValuesArray(newArray);
+    }
+  }
+
   private static class LongListImpl extends AbstractList<Long> {
 
-    private final long[] values;
+    private long[] values;
 
     LongListImpl(long[] values) {
       this.values = values;
@@ -76,6 +87,10 @@ public final class PrimitiveLongList {
     @Override
     public int size() {
       return values.length;
+    }
+
+    public void replaceValuesArray(long[] newArray) {
+      values = newArray;
     }
   }
 

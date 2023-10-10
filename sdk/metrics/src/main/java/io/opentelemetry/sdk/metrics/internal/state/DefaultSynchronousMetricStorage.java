@@ -8,6 +8,7 @@ package io.opentelemetry.sdk.metrics.internal.state;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
+import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.internal.ThrottlingLogger;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.ExemplarData;
@@ -50,6 +51,11 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
       new ConcurrentHashMap<>();
   private final AttributesProcessor attributesProcessor;
 
+  private final MemoryMode memoryMode;
+
+  // Only populated if memoryMode == REUSABLE_DATA
+  private final ArrayList<T> reusableResultList = new ArrayList<>();
+
   /**
    * This field is set to 1 less than the actual intended cardinality limit, allowing the last slot
    * to be filled by the {@link MetricStorage#CARDINALITY_OVERFLOW} series.
@@ -74,6 +80,7 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
     this.aggregator = aggregator;
     this.attributesProcessor = attributesProcessor;
     this.maxCardinality = maxCardinality - 1;
+    this.memoryMode = registeredReader.getReader().getMemoryMode();
   }
 
   // Visible for testing
@@ -130,7 +137,8 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
     if (newHandle == null) {
       newHandle = aggregator.createHandle();
     }
-    handle = aggregatorHandles.putIfAbsent(attributes, newHandle);
+    handle =
+        aggregatorHandles.putIfAbsent(attributes, newHandle);
     return handle != null ? handle : newHandle;
   }
 
@@ -146,8 +154,15 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
             ? registeredReader.getLastCollectEpochNanos()
             : startEpochNanos;
 
+    List<T> points;
+    if (memoryMode == MemoryMode.REUSABLE_DATA) {
+      reusableResultList.clear();
+      points = reusableResultList;
+    } else {
+      points = new ArrayList<>(aggregatorHandles.size());
+    }
+
     // Grab aggregated points.
-    List<T> points = new ArrayList<>(aggregatorHandles.size());
     aggregatorHandles.forEach(
         (attributes, handle) -> {
           T point = handle.aggregateThenMaybeReset(start, epochNanos, attributes, reset);

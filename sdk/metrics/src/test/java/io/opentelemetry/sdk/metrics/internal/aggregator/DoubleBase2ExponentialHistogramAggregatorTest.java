@@ -5,6 +5,7 @@
 
 package io.opentelemetry.sdk.metrics.internal.aggregator;
 
+import static io.opentelemetry.sdk.common.export.MemoryMode.IMMUTABLE_DATA;
 import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
@@ -50,7 +51,7 @@ class DoubleBase2ExponentialHistogramAggregatorTest {
 
   private static final int MAX_SCALE = 20;
   private static final DoubleBase2ExponentialHistogramAggregator aggregator =
-      new DoubleBase2ExponentialHistogramAggregator(ExemplarReservoir::doubleNoSamples, 160, 20);
+      new DoubleBase2ExponentialHistogramAggregator(ExemplarReservoir::doubleNoSamples, 160, 20, IMMUTABLE_DATA);
   private static final Resource RESOURCE = Resource.getDefault();
   private static final InstrumentationScopeInfo INSTRUMENTATION_SCOPE_INFO =
       InstrumentationScopeInfo.empty();
@@ -61,7 +62,7 @@ class DoubleBase2ExponentialHistogramAggregatorTest {
     return Stream.of(
         aggregator,
         new DoubleBase2ExponentialHistogramAggregator(
-            ExemplarReservoir::doubleNoSamples, 160, MAX_SCALE));
+            ExemplarReservoir::doubleNoSamples, 160, MAX_SCALE, IMMUTABLE_DATA));
   }
 
   private static int valueToIndex(int scale, double value) {
@@ -195,7 +196,7 @@ class DoubleBase2ExponentialHistogramAggregatorTest {
   @Test
   void aggregateThenMaybeReset_WithExemplars() {
     DoubleBase2ExponentialHistogramAggregator agg =
-        new DoubleBase2ExponentialHistogramAggregator(() -> reservoir, 160, MAX_SCALE);
+        new DoubleBase2ExponentialHistogramAggregator(() -> reservoir, 160, MAX_SCALE, IMMUTABLE_DATA);
 
     Attributes attributes = Attributes.builder().put("test", "value").build();
     DoubleExemplarData exemplar =
@@ -310,7 +311,7 @@ class DoubleBase2ExponentialHistogramAggregatorTest {
     Mockito.when(reservoirSupplier.get()).thenReturn(reservoir);
 
     DoubleBase2ExponentialHistogramAggregator cumulativeAggregator =
-        new DoubleBase2ExponentialHistogramAggregator(reservoirSupplier, 160, MAX_SCALE);
+        new DoubleBase2ExponentialHistogramAggregator(reservoirSupplier, 160, MAX_SCALE, IMMUTABLE_DATA);
 
     AggregatorHandle<ExponentialHistogramPointData, DoubleExemplarData> aggregatorHandle =
         cumulativeAggregator.createHandle();
