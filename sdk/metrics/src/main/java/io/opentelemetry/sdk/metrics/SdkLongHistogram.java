@@ -8,17 +8,18 @@ package io.opentelemetry.sdk.metrics;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.LongHistogramBuilder;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.extension.incubator.metrics.ExtendedLongHistogramBuilder;
-import io.opentelemetry.extension.incubator.metrics.LongHistogramAdviceConfigurer;
 import io.opentelemetry.sdk.internal.ThrottlingLogger;
+import io.opentelemetry.sdk.metrics.internal.aggregator.ExplicitBucketHistogramUtils;
 import io.opentelemetry.sdk.metrics.internal.descriptor.Advice;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
 import io.opentelemetry.sdk.metrics.internal.state.MeterProviderSharedState;
 import io.opentelemetry.sdk.metrics.internal.state.MeterSharedState;
 import io.opentelemetry.sdk.metrics.internal.state.WriteableMetricStorage;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -57,9 +58,9 @@ final class SdkLongHistogram extends AbstractInstrument implements LongHistogram
     record(value, Attributes.empty());
   }
 
-  static final class SdkLongHistogramBuilder
-      extends AbstractInstrumentBuilder<SdkLongHistogramBuilder>
-      implements ExtendedLongHistogramBuilder, LongHistogramAdviceConfigurer {
+  static final class SdkLongHistogramBuilder implements ExtendedLongHistogramBuilder {
+
+    private final InstrumentBuilder builder;
 
     SdkLongHistogramBuilder(
         MeterProviderSharedState meterProviderSharedState,
@@ -68,46 +69,60 @@ final class SdkLongHistogram extends AbstractInstrument implements LongHistogram
         String description,
         String unit,
         Advice.AdviceBuilder adviceBuilder) {
-      super(
-          meterProviderSharedState,
-          sharedState,
-          InstrumentType.HISTOGRAM,
-          InstrumentValueType.LONG,
-          name,
-          description,
-          unit,
-          adviceBuilder);
+      builder =
+          new InstrumentBuilder(
+                  name,
+                  InstrumentType.HISTOGRAM,
+                  InstrumentValueType.LONG,
+                  meterProviderSharedState,
+                  sharedState)
+              .setDescription(description)
+              .setUnit(unit)
+              .setAdviceBuilder(adviceBuilder);
     }
 
     @Override
-    protected SdkLongHistogramBuilder getThis() {
+    public LongHistogramBuilder setDescription(String description) {
+      builder.setDescription(description);
       return this;
     }
 
     @Override
-    public SdkLongHistogramBuilder setAdvice(
-        Consumer<LongHistogramAdviceConfigurer> adviceConsumer) {
-      adviceConsumer.accept(this);
+    public LongHistogramBuilder setUnit(String unit) {
+      builder.setUnit(unit);
       return this;
     }
 
     @Override
     public SdkLongHistogram build() {
-      return buildSynchronousInstrument(SdkLongHistogram::new);
+      return builder.buildSynchronousInstrument(SdkLongHistogram::new);
     }
 
     @Override
-    public LongHistogramAdviceConfigurer setExplicitBucketBoundaries(List<Long> bucketBoundaries) {
-      List<Double> doubleBoundaries =
-          bucketBoundaries.stream().map(Long::doubleValue).collect(Collectors.toList());
-      adviceBuilder.setExplicitBucketBoundaries(doubleBoundaries);
+    public ExtendedLongHistogramBuilder setExplicitBucketBoundariesAdvice(
+        List<Long> bucketBoundaries) {
+      List<Double> boundaries;
+      try {
+        Objects.requireNonNull(bucketBoundaries, "bucketBoundaries must not be null");
+        boundaries = bucketBoundaries.stream().map(Long::doubleValue).collect(Collectors.toList());
+        ExplicitBucketHistogramUtils.validateBucketBoundaries(boundaries);
+      } catch (IllegalArgumentException | NullPointerException e) {
+        logger.warning("Error setting explicit bucket boundaries advice: " + e.getMessage());
+        return this;
+      }
+      builder.setExplicitBucketBoundaries(boundaries);
       return this;
     }
 
     @Override
-    public LongHistogramAdviceConfigurer setAttributes(List<AttributeKey<?>> attributes) {
-      adviceBuilder.setAttributes(attributes);
+    public ExtendedLongHistogramBuilder setAttributesAdvice(List<AttributeKey<?>> attributes) {
+      builder.setAdviceAttributes(attributes);
       return this;
+    }
+
+    @Override
+    public String toString() {
+      return builder.toStringHelper(getClass().getSimpleName());
     }
   }
 }
