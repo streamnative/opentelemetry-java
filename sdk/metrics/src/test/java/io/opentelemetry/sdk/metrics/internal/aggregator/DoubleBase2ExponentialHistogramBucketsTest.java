@@ -97,6 +97,6 @@ class DoubleBase2ExponentialHistogramBucketsTest {
   }
 
   private static DoubleBase2ExponentialHistogramBuckets newBuckets() {
-    return new DoubleBase2ExponentialHistogramBuckets(20, 160);
+    return new DoubleBase2ExponentialHistogramBuckets(20, 160, memoryMode);
   }
 }

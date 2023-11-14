@@ -54,8 +54,7 @@ public class ProfileBenchmark {
 
   public static void warmup(
       InstrumentGarbageCollectionBenchmark benchmark,
-      InstrumentGarbageCollectionBenchmark.ThreadState benchmarkSetup)
-      throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+      InstrumentGarbageCollectionBenchmark.ThreadState benchmarkSetup) {
     for (int i = 0; i < 10; i++) {
       benchmark.recordAndCollect(benchmarkSetup);
     }
@@ -63,8 +62,7 @@ public class ProfileBenchmark {
 
   public static void measure(
       InstrumentGarbageCollectionBenchmark benchmark,
-      InstrumentGarbageCollectionBenchmark.ThreadState benchmarkSetup)
-      throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+      InstrumentGarbageCollectionBenchmark.ThreadState benchmarkSetup) {
     for (int i = 0; i < 200; i++) {
       benchmark.recordAndCollect(benchmarkSetup);
     }

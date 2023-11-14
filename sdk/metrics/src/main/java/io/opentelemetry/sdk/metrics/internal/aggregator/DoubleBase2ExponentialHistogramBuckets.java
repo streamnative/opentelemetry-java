@@ -5,11 +5,15 @@
 
 package io.opentelemetry.sdk.metrics.internal.aggregator;
 
-import io.opentelemetry.sdk.internal.PrimitiveLongList;
+import io.opentelemetry.sdk.common.export.MemoryMode;
+import io.opentelemetry.sdk.internal.DynamicPrimitiveLongList;
 import io.opentelemetry.sdk.metrics.data.ExponentialHistogramBuckets;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
+
+import static io.opentelemetry.sdk.common.export.MemoryMode.IMMUTABLE_DATA;
+import static io.opentelemetry.sdk.common.export.MemoryMode.REUSABLE_DATA;
 
 /**
  * This class handles the operations for recording, scaling, and exposing data related to the base2
@@ -20,13 +24,18 @@ import javax.annotation.Nullable;
  */
 final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogramBuckets {
 
+  private final MemoryMode memoryMode;
   private AdaptingCircularBufferCounter counts;
   private int scale;
   private Base2ExponentialHistogramIndexer base2ExponentialHistogramIndexer;
   private long totalCount;
-  private int lengthChanged = 0;
 
-  DoubleBase2ExponentialHistogramBuckets(int scale, int maxBuckets) {
+  @Nullable
+  private AdaptingCircularBufferCounter reusableCounts;
+  //private int lengthChanged = 0;
+
+  DoubleBase2ExponentialHistogramBuckets(int scale, int maxBuckets, MemoryMode memoryMode) {
+    this.memoryMode = memoryMode;
     this.counts = new AdaptingCircularBufferCounter(maxBuckets);
     this.scale = scale;
     this.base2ExponentialHistogramIndexer = Base2ExponentialHistogramIndexer.get(this.scale);
@@ -39,6 +48,7 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
     this.scale = buckets.scale;
     this.base2ExponentialHistogramIndexer = buckets.base2ExponentialHistogramIndexer;
     this.totalCount = buckets.totalCount;
+    this.memoryMode = buckets.memoryMode;
   }
 
   /** Returns a copy of this bucket. */
@@ -52,7 +62,7 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
     this.scale = scale;
     this.base2ExponentialHistogramIndexer = Base2ExponentialHistogramIndexer.get(this.scale);
     this.counts.clear();
-    lengthChanged = 0;
+//    lengthChanged = 0;
   }
 
   boolean record(double value) {
@@ -92,38 +102,31 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
 
     int length = counts.getIndexEnd() - counts.getIndexStart() + 1;
 
-    long[] countsArr;
+    DynamicPrimitiveLongList countsArray;
     if (reusableLongList == null) {
-      countsArr = new long[length];
+      countsArray = new DynamicPrimitiveLongList();
+      countsArray.resetAndResizeTo(length);
     } else {
-      long[] reusableLongArray = PrimitiveLongList.toArray(reusableLongList);
-      if (reusableLongArray.length != length) {
-        countsArr = replaceArray(reusableLongList, length);
-        lengthChanged++;
-        System.out.println(getClass().getName() + "@" + Integer.toHexString(hashCode())+": Changing array from "+reusableLongArray.length+ " to "+length);
-        if (lengthChanged > 1) {
-          System.out.println("MORE THEN 1 - "+lengthChanged+": "+getClass().getName() + "@" + Integer.toHexString(hashCode())+": Changing array from "+reusableLongArray.length+ " to "+length);
-        }
-
-      } else {
-        countsArr = reusableLongArray;
+      countsArray = (DynamicPrimitiveLongList) reusableLongList;
+      if (countsArray.size() != length) {
+          countsArray.resetAndResizeTo(length);
       }
     }
 
     for (int i = 0; i < length; i++) {
-      countsArr[i] = counts.get(i + counts.getIndexStart());
+      countsArray.setLong(i, counts.get(i + counts.getIndexStart()));
     }
 
-    return (reusableLongList == null) ? PrimitiveLongList.wrap(countsArr) : reusableLongList;
+    return countsArray;
   }
 
-  private static long[] replaceArray(List<Long> reusableLongList, int length) {
-
-    long[] countsArr;
-    countsArr = new long[length];
-    PrimitiveLongList.replaceArray(reusableLongList, countsArr);
-    return countsArr;
-  }
+//  private static long[] replaceArray(List<Long> reusableLongList, int length) {
+//
+//    long[] countsArr;
+//    countsArr = new long[length];
+//    PrimitiveLongList.replaceArray(reusableLongList, countsArr);
+//    return countsArr;
+//  }
 
   @Override
   public long getTotalCount() {
@@ -142,7 +145,16 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
       // We want to preserve other optimisations here as well, e.g. integer size.
       // Instead of  creating a new counter, we copy the existing one (for bucket size
       // optimisations), and clear the values before writing the new ones.
-      AdaptingCircularBufferCounter newCounts = new AdaptingCircularBufferCounter(counts);
+      AdaptingCircularBufferCounter newCounts;
+      if (memoryMode == IMMUTABLE_DATA) {
+        newCounts = new AdaptingCircularBufferCounter(counts);
+      } else {
+        if (reusableCounts == null) {
+            reusableCounts = new AdaptingCircularBufferCounter(counts);
+        }
+          newCounts = reusableCounts;
+      }
+
       newCounts.clear();
 
       for (int i = counts.getIndexStart(); i <= counts.getIndexEnd(); i++) {
@@ -154,7 +166,14 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
           }
         }
       }
-      this.counts = newCounts;
+
+      if (memoryMode == REUSABLE_DATA) {
+        AdaptingCircularBufferCounter existingCounts = this.counts;
+        this.counts = newCounts;
+        reusableCounts = existingCounts;
+      } else {
+        this.counts = newCounts;
+      }
     }
 
     this.scale = this.scale - by;

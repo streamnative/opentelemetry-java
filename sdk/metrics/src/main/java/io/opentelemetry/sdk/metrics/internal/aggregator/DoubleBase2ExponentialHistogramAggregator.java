@@ -93,6 +93,7 @@ public final class DoubleBase2ExponentialHistogramAggregator
     private long count;
     private int currentScale;
 
+    private final MemoryMode memoryMode;
     // Have value only when MemoryMode = REUSABLE_DATA
     @Nullable
     private final MutableExponentialHistogramPointData reusablePoint;
@@ -114,6 +115,7 @@ public final class DoubleBase2ExponentialHistogramAggregator
       this.reusablePoint = (memoryMode == MemoryMode.REUSABLE_DATA)
           ? new MutableExponentialHistogramPointData()
           : null;
+      this.memoryMode = memoryMode;
     }
 
     @Override
@@ -221,13 +223,13 @@ public final class DoubleBase2ExponentialHistogramAggregator
       } else if (c > 0) {
         // Initialize positive buckets at current scale, if needed
         if (positiveBuckets == null) {
-          positiveBuckets = new DoubleBase2ExponentialHistogramBuckets(currentScale, maxBuckets);
+          positiveBuckets = new DoubleBase2ExponentialHistogramBuckets(currentScale, maxBuckets, memoryMode);
         }
         buckets = positiveBuckets;
       } else {
         // Initialize negative buckets at current scale, if needed
         if (negativeBuckets == null) {
-          negativeBuckets = new DoubleBase2ExponentialHistogramBuckets(currentScale, maxBuckets);
+          negativeBuckets = new DoubleBase2ExponentialHistogramBuckets(currentScale, maxBuckets, memoryMode);
         }
         buckets = negativeBuckets;
       }
