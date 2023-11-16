@@ -30,13 +30,13 @@ public class InstrumentGarbageCollectionBenchmarkTest {
 
   /**
    * This test validates that in {@link MemoryMode#REUSABLE_DATA}, any {@link
-   * MetricStorage#collect(Resource, InstrumentationScopeInfo, long, long)} barely
-   * allocates memory which is then subsequently garbage collected. It is done so comparatively to
-   * {@link MemoryMode#IMMUTABLE_DATA},
+   * MetricStorage#collect(Resource, InstrumentationScopeInfo, long, long)} barely allocates memory
+   * which is then subsequently garbage collected. It is done so comparatively to {@link
+   * MemoryMode#IMMUTABLE_DATA},
    *
-   * <p>It runs the JMH test {@link InstrumentGarbageCollectionBenchmark} with GC
-   * profiler, and measures for each parameter combination the garbage collector normalized rate
-   * (bytes allocated per Operation).
+   * <p>It runs the JMH test {@link InstrumentGarbageCollectionBenchmark} with GC profiler, and
+   * measures for each parameter combination the garbage collector normalized rate (bytes allocated
+   * per Operation).
    *
    * <p>Memory allocations can be hidden even at an innocent foreach loop on a collection, which
    * under the hood allocates an internal object O(N) times. Someone can accidentally refactor such
@@ -85,33 +85,35 @@ public class InstrumentGarbageCollectionBenchmarkTest {
         testInstrumentTypeResultsMap
             .computeIfAbsent(testInstrumentType, k -> new TestInstrumentTypeResults())
             .aggregationTemporalityToMemoryModeResult
-              .computeIfAbsent(aggregationTemporality, k -> new HashMap<>())
-              .put(memoryMode, allocRateNorm.getScore());
+            .computeIfAbsent(aggregationTemporality, k -> new HashMap<>())
+            .put(memoryMode, allocRateNorm.getScore());
       }
     }
 
-    testInstrumentTypeResultsMap.forEach((testInstrumentType, testInstrumentTypeResults) -> {
-      Map<String, Map<String, Double>> resultMap =
-          testInstrumentTypeResults.aggregationTemporalityToMemoryModeResult;
-      assertThat(resultMap).hasSameSizeAs(AggregationTemporality.values());
+    testInstrumentTypeResultsMap.forEach(
+        (testInstrumentType, testInstrumentTypeResults) -> {
+          Map<String, Map<String, Double>> resultMap =
+              testInstrumentTypeResults.aggregationTemporalityToMemoryModeResult;
+          assertThat(resultMap).hasSameSizeAs(AggregationTemporality.values());
 
-      // Asserts that reusable data GC allocation rate is a tiny fraction of immutable data
-      // GC allocation rate
-      resultMap.forEach(
-          (aggregationTemporality, memoryModeToAllocRateMap) -> {
-            Double immutableDataAllocRate =
-                memoryModeToAllocRateMap.get(MemoryMode.IMMUTABLE_DATA.toString());
-            Double reusableDataAllocRate =
-                memoryModeToAllocRateMap.get(MemoryMode.REUSABLE_DATA.toString());
+          // Asserts that reusable data GC allocation rate is a tiny fraction of immutable data
+          // GC allocation rate
+          resultMap.forEach(
+              (aggregationTemporality, memoryModeToAllocRateMap) -> {
+                Double immutableDataAllocRate =
+                    memoryModeToAllocRateMap.get(MemoryMode.IMMUTABLE_DATA.toString());
+                Double reusableDataAllocRate =
+                    memoryModeToAllocRateMap.get(MemoryMode.REUSABLE_DATA.toString());
 
-            assertThat(immutableDataAllocRate).isNotNull().isNotZero();
-            assertThat(reusableDataAllocRate).isNotNull().isNotZero();
-            assertThat(100 - (reusableDataAllocRate / immutableDataAllocRate) * 100)
-                .describedAs("Aggregation temporality = %s, testInstrumentType = %s",
-                    aggregationTemporality, testInstrumentType)
-                .isCloseTo(99.8, Offset.offset(2.0));
-          });
-    });
+                assertThat(immutableDataAllocRate).isNotNull().isNotZero();
+                assertThat(reusableDataAllocRate).isNotNull().isNotZero();
+                assertThat(100 - (reusableDataAllocRate / immutableDataAllocRate) * 100)
+                    .describedAs(
+                        "Aggregation temporality = %s, testInstrumentType = %s",
+                        aggregationTemporality, testInstrumentType)
+                    .isCloseTo(99.8, Offset.offset(2.0));
+              });
+        });
   }
 
   static class TestInstrumentTypeResults {

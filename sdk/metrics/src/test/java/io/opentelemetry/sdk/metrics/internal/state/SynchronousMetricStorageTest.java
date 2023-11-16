@@ -440,9 +440,10 @@ public class SynchronousMetricStorageTest {
   }
 
   private static Stream<Arguments> concurrentStressTestArguments() {
+    // FIXME Parameterize memory mode
     Aggregator<PointData, ExemplarData> aggregator =
         ((AggregatorFactory) Aggregation.sum())
-            .createAggregator(DESCRIPTOR, ExemplarFilter.alwaysOff());
+            .createAggregator(DESCRIPTOR, ExemplarFilter.alwaysOff(), MemoryMode.IMMUTABLE_DATA);
     return Stream.of(
         Arguments.of(
             // Delta

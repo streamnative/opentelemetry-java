@@ -7,11 +7,14 @@ package io.opentelemetry.sdk.metrics.internal.aggregator;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-final class Base2ExponentialHistogramIndexer {
+public final class Base2ExponentialHistogramIndexer {
 
   private static final Map<Integer, Base2ExponentialHistogramIndexer> cache =
       new ConcurrentHashMap<>();
+
+  private static final AtomicInteger alloc = new AtomicInteger();
 
   /** Bit mask used to isolate exponent of IEEE 754 double precision number. */
   private static final long EXPONENT_BIT_MASK = 0x7FF0000000000000L;
@@ -43,7 +46,17 @@ final class Base2ExponentialHistogramIndexer {
 
   /** Get an indexer for the given scale. Indexers are cached and reused for performance. */
   static Base2ExponentialHistogramIndexer get(int scale) {
-    return cache.computeIfAbsent(scale, unused -> new Base2ExponentialHistogramIndexer(scale));
+    return cache.computeIfAbsent(
+        scale,
+        scaleAsKey -> {
+          alloc.incrementAndGet();
+          return new Base2ExponentialHistogramIndexer(scaleAsKey);
+        });
+  }
+
+  @SuppressWarnings("SystemOut")
+  public static void deleteMeAfterwards() {
+    System.out.println("Scale is:" + cache.size() + ", alloc = " + alloc.get());
   }
 
   /**

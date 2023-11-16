@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.sdk.metrics.internal.aggregator;
 
 import io.opentelemetry.sdk.metrics.data.ExponentialHistogramBuckets;
@@ -11,8 +16,7 @@ public class MutableExponentialHistogramBuckets implements ExponentialHistogramB
   private int offset;
   private long totalCount;
 
-  @Nullable
-  private List<Long> bucketCounts;
+  @Nullable private List<Long> bucketCounts;
 
   @Override
   public int getScale() {
@@ -40,8 +44,8 @@ public class MutableExponentialHistogramBuckets implements ExponentialHistogramB
     this.scale = doubleBase2ExponentialHistogramBuckets.getScale();
     this.offset = doubleBase2ExponentialHistogramBuckets.getOffset();
     this.totalCount = doubleBase2ExponentialHistogramBuckets.getTotalCount();
-    this.bucketCounts = doubleBase2ExponentialHistogramBuckets
-        .getBucketCountsWithReusableList(bucketCounts);
+    this.bucketCounts =
+        doubleBase2ExponentialHistogramBuckets.getBucketCountsWithReusableList(bucketCounts);
 
     return this;
   }

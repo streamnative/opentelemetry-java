@@ -48,6 +48,7 @@ public final class PrimitiveLongList {
 
   /**
    * Replaces the backing values array with a new one.
+   *
    * @param list A list created by {@link PrimitiveLongList#wrap(long[])}.
    * @param newArray the new values array to place in {@code list}
    */

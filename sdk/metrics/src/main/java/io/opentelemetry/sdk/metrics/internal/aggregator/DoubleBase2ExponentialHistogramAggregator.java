@@ -95,8 +95,7 @@ public final class DoubleBase2ExponentialHistogramAggregator
 
     private final MemoryMode memoryMode;
     // Have value only when MemoryMode = REUSABLE_DATA
-    @Nullable
-    private final MutableExponentialHistogramPointData reusablePoint;
+    @Nullable private final MutableExponentialHistogramPointData reusablePoint;
 
     Handle(
         ExemplarReservoir<DoubleExemplarData> reservoir,
@@ -112,9 +111,10 @@ public final class DoubleBase2ExponentialHistogramAggregator
       this.max = -1;
       this.count = 0;
       this.currentScale = maxScale;
-      this.reusablePoint = (memoryMode == MemoryMode.REUSABLE_DATA)
-          ? new MutableExponentialHistogramPointData()
-          : null;
+      this.reusablePoint =
+          (memoryMode == MemoryMode.REUSABLE_DATA)
+              ? new MutableExponentialHistogramPointData()
+              : null;
       this.memoryMode = memoryMode;
     }
 
@@ -144,22 +144,24 @@ public final class DoubleBase2ExponentialHistogramAggregator
                 attributes,
                 exemplars);
       } else {
-        point = reusablePoint.set(
-            currentScale,
-            sum,
-            zeroCount,
-            this.count > 0,
-            this.min,
-            this.count > 0,
-            this.max,
-            resolveBuckets(this.positiveBuckets, currentScale, reset, reusablePoint.getPositiveBuckets()),
-            resolveBuckets(this.negativeBuckets, currentScale, reset, reusablePoint.getNegativeBuckets()),
-            startEpochNanos,
-            epochNanos,
-            attributes,
-            exemplars);
+        point =
+            reusablePoint.set(
+                currentScale,
+                sum,
+                zeroCount,
+                this.count > 0,
+                this.min,
+                this.count > 0,
+                this.max,
+                resolveBuckets(
+                    this.positiveBuckets, currentScale, reset, reusablePoint.getPositiveBuckets()),
+                resolveBuckets(
+                    this.negativeBuckets, currentScale, reset, reusablePoint.getNegativeBuckets()),
+                startEpochNanos,
+                epochNanos,
+                attributes,
+                exemplars);
       }
-
 
       if (reset) {
         this.sum = 0;
@@ -173,9 +175,7 @@ public final class DoubleBase2ExponentialHistogramAggregator
     }
 
     private ExponentialHistogramBuckets resolveBuckets(
-        @Nullable DoubleBase2ExponentialHistogramBuckets buckets,
-        int scale,
-        boolean reset) {
+        @Nullable DoubleBase2ExponentialHistogramBuckets buckets, int scale, boolean reset) {
       return resolveBuckets(buckets, scale, reset, null);
     }
 
@@ -223,13 +223,15 @@ public final class DoubleBase2ExponentialHistogramAggregator
       } else if (c > 0) {
         // Initialize positive buckets at current scale, if needed
         if (positiveBuckets == null) {
-          positiveBuckets = new DoubleBase2ExponentialHistogramBuckets(currentScale, maxBuckets, memoryMode);
+          positiveBuckets =
+              new DoubleBase2ExponentialHistogramBuckets(currentScale, maxBuckets, memoryMode);
         }
         buckets = positiveBuckets;
       } else {
         // Initialize negative buckets at current scale, if needed
         if (negativeBuckets == null) {
-          negativeBuckets = new DoubleBase2ExponentialHistogramBuckets(currentScale, maxBuckets, memoryMode);
+          negativeBuckets =
+              new DoubleBase2ExponentialHistogramBuckets(currentScale, maxBuckets, memoryMode);
         }
         buckets = negativeBuckets;
       }

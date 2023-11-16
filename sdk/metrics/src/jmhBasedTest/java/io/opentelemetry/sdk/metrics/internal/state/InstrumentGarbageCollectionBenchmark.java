@@ -13,14 +13,13 @@ import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.metrics.internal.SdkMeterProviderUtil;
 import io.opentelemetry.sdk.metrics.internal.exemplar.ExemplarFilter;
+import io.opentelemetry.sdk.metrics.internal.state.TestInstrumentType.InstrumentTester;
+import io.opentelemetry.sdk.metrics.internal.state.TestInstrumentType.TestInstrumentsState;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-
-import io.opentelemetry.sdk.metrics.internal.state.TestInstrumentType.InstrumentTester;
-import io.opentelemetry.sdk.metrics.internal.state.TestInstrumentType.TestInstrumentsState;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -36,8 +35,8 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 /**
- * Run this through {@link InstrumentGarbageCollectionBenchmarkTest}, as it runs it
- * embedded with the GC profiler which what this test designed for (No need for command line run)
+ * Run this through {@link InstrumentGarbageCollectionBenchmarkTest}, as it runs it embedded with
+ * the GC profiler which what this test designed for (No need for command line run)
  *
  * <p>This test creates 10 asynchronous counters (any asynchronous instrument will do as the code
  * path is almost the same for all async instrument types), and 1000 attribute sets. Each time the
@@ -83,15 +82,18 @@ public class InstrumentGarbageCollectionBenchmark {
     @SuppressWarnings("SpellCheckingInspection")
     @Setup
     public void setup()
-        throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-      instrumentTester = testInstrumentType.instrumentTesterClass.getDeclaredConstructor()
-          .newInstance();
+        throws NoSuchMethodException,
+            InvocationTargetException,
+            InstantiationException,
+            IllegalAccessException {
+      instrumentTester =
+          testInstrumentType.instrumentTesterClass.getDeclaredConstructor().newInstance();
       PeriodicMetricReader metricReader =
           PeriodicMetricReader.builder(
                   // Configure an exporter that configures the temporality and aggregation
                   // for the test case, but otherwise drops the data on export
                   new NoopMetricExporter(
-                        aggregationTemporality, instrumentTester.testedAggregation(), memoryMode))
+                      aggregationTemporality, instrumentTester.testedAggregation(), memoryMode))
               // Effectively disable periodic reading so reading is only done on #flush()
               .setInterval(Duration.ofSeconds(Integer.MAX_VALUE))
               .build();
@@ -105,8 +107,9 @@ public class InstrumentGarbageCollectionBenchmark {
       SdkMeterProviderUtil.setExemplarFilter(builder, ExemplarFilter.alwaysOff());
 
       sdkMeterProvider = builder.build();
-      testInstrumentsState = instrumentTester.buildInstruments(
-        instrumentCount, sdkMeterProvider, attributesList, random);
+      testInstrumentsState =
+          instrumentTester.buildInstruments(
+              instrumentCount, sdkMeterProvider, attributesList, random);
     }
 
     @TearDown

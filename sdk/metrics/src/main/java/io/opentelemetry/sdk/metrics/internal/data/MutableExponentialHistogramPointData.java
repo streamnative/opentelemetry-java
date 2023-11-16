@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.sdk.metrics.internal.data;
 
 import io.opentelemetry.api.common.Attributes;
@@ -61,7 +66,6 @@ public class MutableExponentialHistogramPointData implements ExponentialHistogra
   @Override
   public boolean hasMin() {
     return hasMin;
-
   }
 
   @Override

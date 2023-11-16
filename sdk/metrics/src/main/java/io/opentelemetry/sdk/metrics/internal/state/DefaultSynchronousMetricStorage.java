@@ -5,6 +5,9 @@
 
 package io.opentelemetry.sdk.metrics.internal.state;
 
+import static io.opentelemetry.sdk.common.export.MemoryMode.IMMUTABLE_DATA;
+import static io.opentelemetry.sdk.common.export.MemoryMode.REUSABLE_DATA;
+
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
@@ -55,6 +58,11 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
 
   // Only populated if memoryMode == REUSABLE_DATA
   private final ArrayList<T> reusableResultList = new ArrayList<>();
+
+  // Only populated if memoryMode == REUSABLE_DATA and
+  // aggregationTemporality is DELTA
+  private volatile ConcurrentHashMap<Attributes, AggregatorHandle<T, U>>
+      previousCollectionAggregatorHandles = new ConcurrentHashMap<>();
 
   /**
    * This field is set to 1 less than the actual intended cardinality limit, allowing the last slot
@@ -146,7 +154,7 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
 
   /**
    * Called on the {@link AggregatorHolder} obtained from {@link #getHolderForRecord()} to indicate
-   * that recording is complete and it is safe to collect.
+   * that recording is complete, and it is safe to collect.
    */
   private void releaseHolderForRecord(AggregatorHolder<T, U> aggregatorHolder) {
     aggregatorHolder.activeRecordingThreads.addAndGet(-2);
@@ -182,8 +190,7 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
     if (newHandle == null) {
       newHandle = aggregator.createHandle();
     }
-    handle =
-        aggregatorHandles.putIfAbsent(attributes, newHandle);
+    handle = aggregatorHandles.putIfAbsent(attributes, newHandle);
     return handle != null ? handle : newHandle;
   }
 
@@ -202,7 +209,11 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
     ConcurrentHashMap<Attributes, AggregatorHandle<T, U>> aggregatorHandles;
     if (reset) {
       AggregatorHolder<T, U> holder = this.aggregatorHolder;
-      this.aggregatorHolder = new AggregatorHolder<>();
+      this.aggregatorHolder =
+          (memoryMode == REUSABLE_DATA)
+              ? new AggregatorHolder<>(previousCollectionAggregatorHandles)
+              : new AggregatorHolder<>();
+
       // Increment recordsInProgress by 1, which produces an odd number acting as a signal that
       // record operations should re-read the volatile this.aggregatorHolder.
       // Repeatedly grab recordsInProgress until it is <= 1, which signals all active record
@@ -218,17 +229,38 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
 
     // Grab aggregated points.
     List<T> points;
-    if (memoryMode == MemoryMode.REUSABLE_DATA) {
+    if (memoryMode == REUSABLE_DATA) {
       reusableResultList.clear();
       points = reusableResultList;
     } else {
       points = new ArrayList<>(aggregatorHandles.size());
     }
-    
+
+    // Trim unused aggregator handles if we reached max cardinality
+    // to have enough room recording values in the next collection cycle
+    // this aggregatorHandles map will be used for recording values.
+    // In the combination of REUSABLE_DATA mode and DELTA aggregation
+    // temporality (in which we reset the aggregation every collection)
+    // the aggregatorHandles map is never cleared to avoid memory allocations
+    // hence when we reach max cardinality of aggregatorHandles, we clear the
+    // map of unreported aggregator handles, so next collection will have some space
+    // for new recordings.
+    // FIXME Make this explanation better
+    if (memoryMode == REUSABLE_DATA && reset) {
+      if (aggregatorHandles.size() >= maxCardinality) {
+        aggregatorHandles.forEach(
+            (attribute, handle) -> {
+              if (!handle.isValuesRecorded()) {
+                aggregatorHandles.remove(attribute);
+              }
+            });
+      }
+    }
+
     aggregatorHandles.forEach(
         (attributes, handle) -> {
           T point = handle.aggregateThenMaybeReset(start, epochNanos, attributes, reset);
-          if (reset) {
+          if (reset && memoryMode == IMMUTABLE_DATA) {
             // Return the aggregator to the pool.
             aggregatorHandlePool.offer(handle);
           }
@@ -237,11 +269,17 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
           }
         });
 
-    // Trim pool down if needed. pool.size() will only exceed maxCardinality if new handles are
-    // created during collection.
-    int toDelete = aggregatorHandlePool.size() - (maxCardinality + 1);
-    for (int i = 0; i < toDelete; i++) {
-      aggregatorHandlePool.poll();
+    if (reset) {
+      if (memoryMode == IMMUTABLE_DATA) {
+        // Trim pool down if needed. pool.size() will only exceed maxCardinality if new handles are
+        // created during collection.
+        int toDelete = aggregatorHandlePool.size() - (maxCardinality + 1);
+        for (int i = 0; i < toDelete; i++) {
+          aggregatorHandlePool.poll();
+        }
+      } else /* REUSABLE_DATA */ {
+        previousCollectionAggregatorHandles = aggregatorHandles;
+      }
     }
 
     if (points.isEmpty()) {
@@ -258,8 +296,7 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
   }
 
   private static class AggregatorHolder<T extends PointData, U extends ExemplarData> {
-    private final ConcurrentHashMap<Attributes, AggregatorHandle<T, U>> aggregatorHandles =
-        new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Attributes, AggregatorHandle<T, U>> aggregatorHandles;
     // Recording threads grab the current interval (AggregatorHolder) and atomically increment
     // this by 2 before recording against it (and then decrement by two when done).
     //
@@ -275,5 +312,14 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
     // all it needs to do is release the "read lock" it just obtained (decrementing by 2),
     // and then grab and record against the new current interval (AggregatorHolder).
     private final AtomicInteger activeRecordingThreads = new AtomicInteger(0);
+
+    public AggregatorHolder() {
+      aggregatorHandles = new ConcurrentHashMap<>();
+    }
+
+    public AggregatorHolder(
+        ConcurrentHashMap<Attributes, AggregatorHandle<T, U>> aggregatorHandles) {
+      this.aggregatorHandles = aggregatorHandles;
+    }
   }
 }

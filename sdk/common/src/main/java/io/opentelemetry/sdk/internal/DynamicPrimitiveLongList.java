@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.sdk.internal;
 
 import java.util.AbstractList;
@@ -5,25 +10,31 @@ import java.util.AbstractList;
 /**
  * A dynamic list of primitive long values.
  *
- * <p>This list dynamically manages sub-arrays of primitive long values to allow
- * dynamic resizing while avoiding the overhead of boxing in Long objects.
- * The list can be resized, and values can be accessed as primitive longs.</p>
+ * <p>This list dynamically manages sub-arrays of primitive long values to allow dynamic resizing
+ * while avoiding the overhead of boxing in Long objects. The list can be resized, and values can be
+ * accessed as primitive longs.
  *
- * <p><b>Supported {@code List<Long>} methods:</b></p>
+ * <p><b>Supported {@code List<Long>} methods:</b>
+ *
  * <ul>
- *     <li>{@link #get(int)} - retrieves the element at the specified position in this list.</li>
- *     <li>{@link #set(int, Long)} - replaces the element at the specified position in this list with the specified element.</li>
- *     <li>{@link #size()} - returns the number of elements in this list.</li>
+ *   <li>{@link #get(int)} - retrieves the element at the specified position in this list.
+ *   <li>{@link #set(int, Long)} - replaces the element at the specified position in this list with
+ *       the specified element.
+ *   <li>{@link #size()} - returns the number of elements in this list.
  * </ul>
  *
- * <p><b>Additional utility methods:</b></p>
+ * <p><b>Additional utility methods:</b>
+ *
  * <ul>
- *     <li>{@link #getLong(int)} - retrieves the element at the specified position in this list as a primitive long.</li>
- *     <li>{@link #setLong(int, long)} - replaces the element at the specified position in this list with the specified primitive long element.</li>
- *     <li>{@link #resetAndResizeTo(int)} - resets and resizes the list to the specified size.</li>
+ *   <li>{@link #getLong(int)} - retrieves the element at the specified position in this list as a
+ *       primitive long.
+ *   <li>{@link #setLong(int, long)} - replaces the element at the specified position in this list
+ *       with the specified primitive long element.
+ *   <li>{@link #resetAndResizeTo(int)} - resets and resizes the list to the specified size.
  * </ul>
  *
- * <p>Note: This implementation does not support adding or removing elements after the list is created.</p>
+ * <p>Note: This implementation does not support adding or removing elements after the list is
+ * created.
  */
 public class DynamicPrimitiveLongList extends AbstractList<Long> {
   private static final int DEFAULT_SUBARRAY_CAPACITY = 10;
@@ -79,20 +90,23 @@ public class DynamicPrimitiveLongList extends AbstractList<Long> {
     return oldValue;
   }
 
-  /**
-   * @return the number of elements in this list
-   */
+  /** Returns the number of elements in this list. */
   @Override
   public int size() {
     return size;
   }
 
-  public void resetAndResizeTo(int newSize) {
-    if (newSize < 0) {
+  /**
+   * Empties the list and resizes its internal capacity to a new value.
+   *
+   * @param newCapacity The new capacity of the list
+   */
+  public void resetAndResizeTo(int newCapacity) {
+    if (newCapacity < 0) {
       throw new IllegalArgumentException("New size must be non-negative");
     }
-    ensureCapacity(newSize);
-    size = newSize;
+    ensureCapacity(newCapacity);
+    size = 0;
   }
 
   private void ensureCapacity(int minCapacity) {

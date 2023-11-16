@@ -5,15 +5,15 @@
 
 package io.opentelemetry.sdk.metrics.internal.aggregator;
 
+import static io.opentelemetry.sdk.common.export.MemoryMode.IMMUTABLE_DATA;
+import static io.opentelemetry.sdk.common.export.MemoryMode.REUSABLE_DATA;
+
 import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.internal.DynamicPrimitiveLongList;
 import io.opentelemetry.sdk.metrics.data.ExponentialHistogramBuckets;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
-
-import static io.opentelemetry.sdk.common.export.MemoryMode.IMMUTABLE_DATA;
-import static io.opentelemetry.sdk.common.export.MemoryMode.REUSABLE_DATA;
 
 /**
  * This class handles the operations for recording, scaling, and exposing data related to the base2
@@ -30,9 +30,9 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
   private Base2ExponentialHistogramIndexer base2ExponentialHistogramIndexer;
   private long totalCount;
 
-  @Nullable
-  private AdaptingCircularBufferCounter reusableCounts;
-  //private int lengthChanged = 0;
+  @Nullable private AdaptingCircularBufferCounter reusableCounts;
+
+  // private int lengthChanged = 0;
 
   DoubleBase2ExponentialHistogramBuckets(int scale, int maxBuckets, MemoryMode memoryMode) {
     this.memoryMode = memoryMode;
@@ -62,7 +62,7 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
     this.scale = scale;
     this.base2ExponentialHistogramIndexer = Base2ExponentialHistogramIndexer.get(this.scale);
     this.counts.clear();
-//    lengthChanged = 0;
+    //    lengthChanged = 0;
   }
 
   boolean record(double value) {
@@ -109,7 +109,7 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
     } else {
       countsArray = (DynamicPrimitiveLongList) reusableLongList;
       if (countsArray.size() != length) {
-          countsArray.resetAndResizeTo(length);
+        countsArray.resetAndResizeTo(length);
       }
     }
 
@@ -120,13 +120,13 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
     return countsArray;
   }
 
-//  private static long[] replaceArray(List<Long> reusableLongList, int length) {
-//
-//    long[] countsArr;
-//    countsArr = new long[length];
-//    PrimitiveLongList.replaceArray(reusableLongList, countsArr);
-//    return countsArr;
-//  }
+  //  private static long[] replaceArray(List<Long> reusableLongList, int length) {
+  //
+  //    long[] countsArr;
+  //    countsArr = new long[length];
+  //    PrimitiveLongList.replaceArray(reusableLongList, countsArr);
+  //    return countsArr;
+  //  }
 
   @Override
   public long getTotalCount() {
@@ -150,9 +150,9 @@ final class DoubleBase2ExponentialHistogramBuckets implements ExponentialHistogr
         newCounts = new AdaptingCircularBufferCounter(counts);
       } else {
         if (reusableCounts == null) {
-            reusableCounts = new AdaptingCircularBufferCounter(counts);
+          reusableCounts = new AdaptingCircularBufferCounter(counts);
         }
-          newCounts = reusableCounts;
+        newCounts = reusableCounts;
       }
 
       newCounts.clear();

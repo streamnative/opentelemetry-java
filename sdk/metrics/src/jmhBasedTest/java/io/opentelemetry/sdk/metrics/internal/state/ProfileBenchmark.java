@@ -1,12 +1,17 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.sdk.metrics.internal.state;
 
 import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
+import io.opentelemetry.sdk.metrics.internal.aggregator.Base2ExponentialHistogramIndexer;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * <p>This benchmark class is used to see memory allocation flame
- * graphs for a single run.
+ * This benchmark class is used to see memory allocation flame graphs for a single run.
  *
  * <p>Steps:
  *
@@ -28,7 +33,10 @@ public class ProfileBenchmark {
   private ProfileBenchmark() {}
 
   public static void main(String[] args)
-      throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+      throws InvocationTargetException,
+          NoSuchMethodException,
+          InstantiationException,
+          IllegalAccessException {
     // Parameters
     AggregationTemporality aggregationTemporality = AggregationTemporality.DELTA;
     MemoryMode memoryMode = MemoryMode.REUSABLE_DATA;
@@ -41,15 +49,14 @@ public class ProfileBenchmark {
     benchmarkSetup.memoryMode = memoryMode;
     benchmarkSetup.testInstrumentType = testInstrumentType;
 
-    InstrumentGarbageCollectionBenchmark benchmark =
-        new InstrumentGarbageCollectionBenchmark();
-
+    InstrumentGarbageCollectionBenchmark benchmark = new InstrumentGarbageCollectionBenchmark();
 
     benchmarkSetup.setup();
-    //benchmark.recordAndCollect(benchmarkSetup);
+    // benchmark.recordAndCollect(benchmarkSetup);
 
     warmup(benchmark, benchmarkSetup);
     measure(benchmark, benchmarkSetup);
+    Base2ExponentialHistogramIndexer.deleteMeAfterwards();
   }
 
   public static void warmup(

@@ -5,9 +5,9 @@
 
 package io.opentelemetry.sdk.metrics.internal.state;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import javax.annotation.Nullable;
 
 /**
  * Concurrent Array-based Stack.

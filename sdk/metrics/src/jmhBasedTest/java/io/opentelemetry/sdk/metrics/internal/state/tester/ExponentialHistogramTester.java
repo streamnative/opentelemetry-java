@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.sdk.metrics.internal.state.tester;
 
 import io.opentelemetry.api.common.Attributes;
@@ -29,10 +34,7 @@ public class ExponentialHistogramTester implements InstrumentTester {
       List<Attributes> attributesList,
       Random random) {
     ExponentialHistogramState state = new ExponentialHistogramState();
-    state.doubleHistogram = sdkMeterProvider
-        .get("meter")
-        .histogramBuilder("testhistogram")
-        .build();
+    state.doubleHistogram = sdkMeterProvider.get("meter").histogramBuilder("testhistogram").build();
     return state;
   }
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.sdk.metrics.internal.state.tester;
 
 import io.opentelemetry.api.common.Attributes;
@@ -5,7 +10,6 @@ import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.internal.state.TestInstrumentType;
 import io.opentelemetry.sdk.metrics.internal.state.TestInstrumentType.EmptyInstrumentsState;
-
 import java.util.List;
 import java.util.Random;
 
@@ -32,7 +36,6 @@ public class AsyncCounterTester implements TestInstrumentType.InstrumentTester {
                   observableLongMeasurement.record(random.nextInt(10_000), attributes);
                 }
               });
-
     }
     return new EmptyInstrumentsState();
   }
