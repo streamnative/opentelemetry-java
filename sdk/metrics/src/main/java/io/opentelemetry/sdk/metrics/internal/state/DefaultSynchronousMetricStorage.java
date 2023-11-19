@@ -236,16 +236,20 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
       points = new ArrayList<>(aggregatorHandles.size());
     }
 
-    // Trim unused aggregator handles if we reached max cardinality
-    // to have enough room recording values in the next collection cycle
-    // this aggregatorHandles map will be used for recording values.
-    // In the combination of REUSABLE_DATA mode and DELTA aggregation
-    // temporality (in which we reset the aggregation every collection)
-    // the aggregatorHandles map is never cleared to avoid memory allocations
-    // hence when we reach max cardinality of aggregatorHandles, we clear the
-    // map of unreported aggregator handles, so next collection will have some space
-    // for new recordings.
-    // FIXME Make this explanation better
+    // In DELTA aggregation temporality each Attributes is starting from 0
+    // every time we finish a collection (by definition of DELTA).
+    // In IMMUTABLE_DATA MemoryMode, this happens by removing all aggregator handles
+    // (into which the values are recorded per Attributes) effectively starting from 0
+    // for each recorded Attributes.
+    // In REUSABLE_DATA MemoryMode, we strive for zero allocations. Since even removing
+    // a Key-Value from a map and putting it again on next recording will cost an allocation,
+    // we are keeping the aggregator handles in their map, and only reset their value once
+    // we finish collecting the aggregated value from each one.
+    // The SDK must adhere to keeping no more than maxCardinality unique attributes in memory,
+    // hence during collect(), when the map is at ful; capacity, we try to clear away unused
+    // aggregator handles, so on next recording cycle using this map, there will room for newly
+    // recorded Attributes. This comes at the expanse of memory allocations. This can be avoided
+    // if the user chooses to increase the maxCardinality.
     if (memoryMode == REUSABLE_DATA && reset) {
       if (aggregatorHandles.size() >= maxCardinality) {
         aggregatorHandles.forEach(
@@ -259,11 +263,23 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
 
     aggregatorHandles.forEach(
         (attributes, handle) -> {
-          T point = handle.aggregateThenMaybeReset(start, epochNanos, attributes, reset);
-          if (reset && memoryMode == IMMUTABLE_DATA) {
-            // Return the aggregator to the pool.
-            aggregatorHandlePool.offer(handle);
+          T point = null;
+          if (reset) {
+            if (memoryMode == IMMUTABLE_DATA) {
+              point = handle.aggregateThenMaybeReset(start, epochNanos, attributes, reset);
+              // Return the aggregator to the pool.
+              aggregatorHandlePool.offer(handle);
+            } else /* REUSABLE_DATA */ {
+              // Handles persists across collect() in REUSABLE_DATA hence we should
+              // ignore unrecorded handles
+              if (handle.isValuesRecorded()) {
+                point = handle.aggregateThenMaybeReset(start, epochNanos, attributes, reset);
+              }
+            }
+          } else {
+            point = handle.aggregateThenMaybeReset(start, epochNanos, attributes, reset);
           }
+
           if (point != null) {
             points.add(point);
           }
