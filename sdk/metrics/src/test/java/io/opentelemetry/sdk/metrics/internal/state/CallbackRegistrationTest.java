@@ -25,6 +25,7 @@ import io.opentelemetry.sdk.metrics.InstrumentValueType;
 import io.opentelemetry.sdk.metrics.export.MetricReader;
 import io.opentelemetry.sdk.metrics.internal.descriptor.Advice;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.ViewRegistry;
 import java.util.Arrays;
@@ -70,6 +71,9 @@ class CallbackRegistrationTest {
   @Mock private AsynchronousMetricStorage<?, ?> storage1;
   @Mock private AsynchronousMetricStorage<?, ?> storage2;
   @Mock private AsynchronousMetricStorage<?, ?> storage3;
+
+  // FIXME Correctly test metric filter
+  private final MetricFilter metricFilter = MetricFilter.acceptAll();
 
   private RegisteredReader registeredReader;
   private SdkObservableMeasurement measurement1;
@@ -143,7 +147,7 @@ class CallbackRegistrationTest {
     CallbackRegistration callbackRegistration =
         CallbackRegistration.create(Collections.singletonList(measurement1), callback);
 
-    callbackRegistration.invokeCallback(registeredReader, 0, 1);
+    callbackRegistration.invokeCallback(registeredReader, 0, 1, metricFilter);
 
     assertThat(counter.get()).isEqualTo(1.1);
     verify(storage1)
@@ -162,7 +166,7 @@ class CallbackRegistrationTest {
     CallbackRegistration callbackRegistration =
         CallbackRegistration.create(Collections.singletonList(measurement2), callback);
 
-    callbackRegistration.invokeCallback(registeredReader, 0, 1);
+    callbackRegistration.invokeCallback(registeredReader, 0, 1, metricFilter);
 
     assertThat(counter.get()).isEqualTo(1);
     verify(storage1, never()).record(any());
@@ -184,7 +188,7 @@ class CallbackRegistrationTest {
     CallbackRegistration callbackRegistration =
         CallbackRegistration.create(Arrays.asList(measurement1, measurement2), callback);
 
-    callbackRegistration.invokeCallback(registeredReader, 0, 1);
+    callbackRegistration.invokeCallback(registeredReader, 0, 1, metricFilter);
 
     assertThat(doubleCounter.get()).isEqualTo(1.1);
     assertThat(longCounter.get()).isEqualTo(1);
@@ -207,7 +211,7 @@ class CallbackRegistrationTest {
     CallbackRegistration callbackRegistration =
         CallbackRegistration.create(Collections.singletonList(measurement), callback);
 
-    callbackRegistration.invokeCallback(registeredReader, 0, 1);
+    callbackRegistration.invokeCallback(registeredReader, 0, 1, metricFilter);
 
     assertThat(counter.get()).isEqualTo(0);
   }
@@ -221,7 +225,7 @@ class CallbackRegistrationTest {
     CallbackRegistration callbackRegistration =
         CallbackRegistration.create(Arrays.asList(measurement1, measurement2), callback);
 
-    callbackRegistration.invokeCallback(registeredReader, 0, 1);
+    callbackRegistration.invokeCallback(registeredReader, 0, 1, metricFilter);
 
     verify(storage1, never()).record(any());
     verify(storage2, never()).record(any());
@@ -238,7 +242,7 @@ class CallbackRegistrationTest {
     CallbackRegistration callbackRegistration =
         CallbackRegistration.create(Collections.singletonList(measurement2), callback);
 
-    callbackRegistration.invokeCallback(registeredReader, 0, 1);
+    callbackRegistration.invokeCallback(registeredReader, 0, 1, metricFilter);
 
     verify(storage1, never()).record(any());
     verify(storage2, never()).record(any());

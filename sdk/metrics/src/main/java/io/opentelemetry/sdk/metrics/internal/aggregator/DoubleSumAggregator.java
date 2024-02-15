@@ -12,6 +12,7 @@ import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.DoubleExemplarData;
 import io.opentelemetry.sdk.metrics.data.DoublePointData;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.internal.concurrent.AdderUtil;
 import io.opentelemetry.sdk.metrics.internal.concurrent.DoubleAdder;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableDoublePointData;
@@ -125,6 +126,11 @@ public final class DoubleSumAggregator
         descriptor.getDescription(),
         descriptor.getSourceInstrument().getUnit(),
         ImmutableSumData.create(isMonotonic(), temporality, points));
+  }
+
+  @Override
+  public MetricDataType getMetricDataType() {
+    return MetricDataType.DOUBLE_SUM;
   }
 
   static final class Handle extends AggregatorHandle<DoublePointData, DoubleExemplarData> {

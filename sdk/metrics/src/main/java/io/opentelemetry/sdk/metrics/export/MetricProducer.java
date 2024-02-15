@@ -7,6 +7,7 @@ package io.opentelemetry.sdk.metrics.export;
 
 import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.resources.Resource;
 import java.util.Collection;
 import javax.annotation.concurrent.ThreadSafe;
@@ -37,6 +38,25 @@ public interface MetricProducer {
    * metrics that have been produced since the last time this method was called.
    *
    * @return a collection of produced {@link MetricData}s to be exported.
+   * @deprecated Use {@link #produce(Resource, MetricFilter)} instead.
    */
-  Collection<MetricData> produce(Resource resource);
+  @Deprecated
+  default Collection<MetricData> produce(Resource resource) {
+    throw new UnsupportedOperationException("This method is deprecated.");
+  }
+
+  /**
+   * Returns a collection of produced {@link MetricData}s to be exported, filtered by the provided
+   * {@link MetricFilter}. This will only be those metrics that have been produced since the last
+   * time this method was called.
+   *
+   * <p>Implementation SHOULD use the {@code metricFilter} as early as possible to gain as much
+   * performance gain possible (memory allocation, internal metric fetching, etc.).
+   *
+   * @return a collection of produced {@link MetricData}s to be exported, filtered by {@code
+   *     metricFilter}
+   */
+  default Collection<MetricData> produce(Resource resource, MetricFilter metricFilter) {
+    return DefaultMetricFilterExecutor.filter(produce(resource), metricFilter);
+  }
 }

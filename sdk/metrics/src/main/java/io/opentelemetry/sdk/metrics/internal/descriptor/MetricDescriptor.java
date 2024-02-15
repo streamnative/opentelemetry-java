@@ -10,6 +10,7 @@ import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.InstrumentValueType;
 import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.internal.aggregator.AggregationUtil;
 import io.opentelemetry.sdk.metrics.internal.debug.SourceInfo;
 import java.util.Locale;
@@ -46,17 +47,21 @@ public abstract class MetricDescriptor {
             unit,
             InstrumentType.OBSERVABLE_GAUGE,
             InstrumentValueType.DOUBLE,
-            Advice.empty()));
+            Advice.empty()),
+        MetricDataType.DOUBLE_GAUGE);
   }
 
   /** Constructs a metric descriptor for a given View + instrument. */
   public static MetricDescriptor create(
-      View view, SourceInfo viewSourceInfo, InstrumentDescriptor instrument) {
+      View view,
+      SourceInfo viewSourceInfo,
+      InstrumentDescriptor instrument,
+      MetricDataType metricDataType) {
     String name = (view.getName() == null) ? instrument.getName() : view.getName();
     String description =
         (view.getDescription() == null) ? instrument.getDescription() : view.getDescription();
     MetricDescriptor metricDescriptor =
-        new AutoValue_MetricDescriptor(name, description, view, instrument);
+        new AutoValue_MetricDescriptor(name, description, view, instrument, metricDataType);
     metricDescriptor.viewSourceInfo.set(viewSourceInfo);
     return metricDescriptor;
   }
@@ -94,6 +99,9 @@ public abstract class MetricDescriptor {
   public String getAggregationName() {
     return AggregationUtil.aggregationName(getView().getAggregation());
   }
+
+  /** The metric data type */
+  public abstract MetricDataType getMetricDataType();
 
   /** Uses case-insensitive version of {@link #getName()}. */
   @Override

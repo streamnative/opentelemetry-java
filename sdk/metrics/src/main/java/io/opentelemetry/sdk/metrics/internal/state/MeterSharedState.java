@@ -12,6 +12,7 @@ import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.RegisteredView;
 import java.util.ArrayList;
@@ -85,7 +86,8 @@ public class MeterSharedState {
   public List<MetricData> collectAll(
       RegisteredReader registeredReader,
       MeterProviderSharedState meterProviderSharedState,
-      long epochNanos) {
+      long epochNanos,
+      MetricFilter metricFilter) {
     List<CallbackRegistration> currentRegisteredCallbacks;
     synchronized (callbackLock) {
       currentRegisteredCallbacks = new ArrayList<>(callbackRegistrations);
@@ -94,7 +96,10 @@ public class MeterSharedState {
     synchronized (collectLock) {
       for (CallbackRegistration callbackRegistration : currentRegisteredCallbacks) {
         callbackRegistration.invokeCallback(
-            registeredReader, meterProviderSharedState.getStartEpochNanos(), epochNanos);
+            registeredReader,
+            meterProviderSharedState.getStartEpochNanos(),
+            epochNanos,
+            metricFilter);
       }
 
       Collection<MetricStorage> storages =

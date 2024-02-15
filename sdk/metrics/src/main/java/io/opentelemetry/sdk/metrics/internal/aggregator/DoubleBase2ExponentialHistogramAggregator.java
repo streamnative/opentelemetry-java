@@ -14,6 +14,7 @@ import io.opentelemetry.sdk.metrics.data.DoubleExemplarData;
 import io.opentelemetry.sdk.metrics.data.ExponentialHistogramBuckets;
 import io.opentelemetry.sdk.metrics.data.ExponentialHistogramPointData;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.internal.data.EmptyExponentialHistogramBuckets;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableExponentialHistogramData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableExponentialHistogramPointData;
@@ -77,6 +78,11 @@ public final class DoubleBase2ExponentialHistogramAggregator
         metricDescriptor.getDescription(),
         metricDescriptor.getSourceInstrument().getUnit(),
         ImmutableExponentialHistogramData.create(temporality, points));
+  }
+
+  @Override
+  public MetricDataType getMetricDataType() {
+    return MetricDataType.EXPONENTIAL_HISTOGRAM;
   }
 
   static final class Handle

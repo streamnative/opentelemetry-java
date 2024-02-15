@@ -15,6 +15,7 @@ import io.opentelemetry.api.metrics.MeterProvider;
 import io.opentelemetry.api.metrics.ObservableMeasurement;
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.state.CallbackRegistration;
 import io.opentelemetry.sdk.metrics.internal.state.MeterProviderSharedState;
@@ -71,8 +72,10 @@ final class SdkMeter implements Meter {
   }
 
   /** Collect all metrics for the meter. */
-  Collection<MetricData> collectAll(RegisteredReader registeredReader, long epochNanos) {
-    return meterSharedState.collectAll(registeredReader, meterProviderSharedState, epochNanos);
+  Collection<MetricData> collectAll(
+      RegisteredReader registeredReader, long epochNanos, MetricFilter metricFilter) {
+    return meterSharedState.collectAll(
+        registeredReader, meterProviderSharedState, epochNanos, metricFilter);
   }
 
   /** Reset the meter, clearing all registered instruments. */

@@ -106,14 +106,18 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
       RegisteredView registeredView,
       InstrumentDescriptor instrumentDescriptor) {
     View view = registeredView.getView();
-    MetricDescriptor metricDescriptor =
-        MetricDescriptor.create(view, registeredView.getViewSourceInfo(), instrumentDescriptor);
     Aggregator<T, U> aggregator =
         ((AggregatorFactory) view.getAggregation())
             .createAggregator(
                 instrumentDescriptor,
                 ExemplarFilter.alwaysOff(),
                 registeredReader.getReader().getMemoryMode());
+    MetricDescriptor metricDescriptor =
+        MetricDescriptor.create(
+            view,
+            registeredView.getViewSourceInfo(),
+            instrumentDescriptor,
+            aggregator.getMetricDataType());
     return new AsynchronousMetricStorage<>(
         registeredReader,
         metricDescriptor,

@@ -11,6 +11,7 @@ import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.LongExemplarData;
 import io.opentelemetry.sdk.metrics.data.LongPointData;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableGaugeData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableLongPointData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableMetricData;
@@ -103,6 +104,11 @@ public final class LongLastValueAggregator implements Aggregator<LongPointData, 
         descriptor.getDescription(),
         descriptor.getSourceInstrument().getUnit(),
         ImmutableGaugeData.create(points));
+  }
+
+  @Override
+  public MetricDataType getMetricDataType() {
+    return MetricDataType.LONG_GAUGE;
   }
 
   static final class Handle extends AggregatorHandle<LongPointData, LongExemplarData> {

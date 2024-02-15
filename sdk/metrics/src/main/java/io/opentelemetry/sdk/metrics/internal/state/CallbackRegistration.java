@@ -10,7 +10,11 @@ import static java.util.stream.Collectors.toList;
 
 import io.opentelemetry.sdk.internal.ThrottlingLogger;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
+import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter.MetricFilterResult;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,24 +74,51 @@ public final class CallbackRegistration {
     return "CallbackRegistration{instrumentDescriptors=" + instrumentDescriptors + "}";
   }
 
-  void invokeCallback(RegisteredReader reader, long startEpochNanos, long epochNanos) {
+  void invokeCallback(
+      RegisteredReader reader, long startEpochNanos, long epochNanos, MetricFilter metricFilter) {
     // Return early if no storages are registered
     if (!hasStorages) {
       return;
     }
-    // Set the active reader on each observable measurement so that measurements are only recorded
-    // to relevant storages
-    observableMeasurements.forEach(
-        observableMeasurement ->
-            observableMeasurement.setActiveReader(reader, startEpochNanos, epochNanos));
-    try {
-      callback.run();
-    } catch (Throwable e) {
-      propagateIfFatal(e);
-      throttlingLogger.log(
-          Level.WARNING, "An exception occurred invoking callback for " + this + ".", e);
-    } finally {
-      observableMeasurements.forEach(SdkObservableMeasurement::unsetActiveReader);
+
+    int expectedMetricCount = 0;
+    for (SdkObservableMeasurement measurement : observableMeasurements) {
+      expectedMetricCount += measurement.getStorages().size();
+    }
+
+    // FIXME: What happens when the aggregation is drop ==> empty aggregation?
+    MetricFilterResult[] metricFilterResults = new MetricFilterResult[expectedMetricCount];
+    for (SdkObservableMeasurement sdkObservableMeasurement : observableMeasurements) {
+      sdkObservableMeasurement.getStorages().stream()
+          .map(AsynchronousMetricStorage::getMetricDescriptor)
+          .forEach(metricDescriptor ->
+              metricFilterResults[metricFilterResults.length] =
+                  metricFilter.testMetric(
+                      sdkObservableMeasurement.getInstrumentationScopeInfo(),
+                      metricDescriptor.getName(),
+                      metricDescriptor.getMetricDataType(),
+                      metricDescriptor.getSourceInstrument().getUnit()));
+
+      if (Arrays.stream(metricFilterResults)
+          .allMatch(result -> result == MetricFilterResult.DROP)) {
+        // If any of the metrics are to be dropped, we don't need to invoke the callback
+        return;
+      }
+
+      // Set the active reader on each observable measurement so that measurements are only recorded
+      // to relevant storages
+      observableMeasurements.forEach(
+          observableMeasurement ->
+              observableMeasurement.setActiveReader(reader, startEpochNanos, epochNanos));
+      try {
+        callback.run();
+      } catch (Throwable e) {
+        propagateIfFatal(e);
+        throttlingLogger.log(
+            Level.WARNING, "An exception occurred invoking callback for " + this + ".", e);
+      } finally {
+        observableMeasurements.forEach(SdkObservableMeasurement::unsetActiveReader);
+      }
     }
   }
 }

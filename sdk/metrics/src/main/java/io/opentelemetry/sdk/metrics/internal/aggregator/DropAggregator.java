@@ -11,6 +11,7 @@ import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.DoubleExemplarData;
 import io.opentelemetry.sdk.metrics.data.ExemplarData;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.data.PointData;
 import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
 import io.opentelemetry.sdk.metrics.internal.exemplar.ExemplarReservoir;
@@ -86,5 +87,10 @@ public final class DropAggregator implements Aggregator<PointData, DoubleExempla
       Collection<PointData> points,
       AggregationTemporality temporality) {
     return EmptyMetricData.getInstance();
+  }
+
+  @Override
+  public MetricDataType getMetricDataType() {
+    throw new IllegalStateException("This method should not be called.");
   }
 }

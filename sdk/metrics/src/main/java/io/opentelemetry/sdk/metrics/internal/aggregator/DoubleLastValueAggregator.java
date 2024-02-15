@@ -11,6 +11,7 @@ import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.DoubleExemplarData;
 import io.opentelemetry.sdk.metrics.data.DoublePointData;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableDoublePointData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableGaugeData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableMetricData;
@@ -108,6 +109,11 @@ public final class DoubleLastValueAggregator
         descriptor.getDescription(),
         descriptor.getSourceInstrument().getUnit(),
         ImmutableGaugeData.create(points));
+  }
+
+  @Override
+  public MetricDataType getMetricDataType() {
+    return MetricDataType.DOUBLE_GAUGE;
   }
 
   static final class Handle extends AggregatorHandle<DoublePointData, DoubleExemplarData> {

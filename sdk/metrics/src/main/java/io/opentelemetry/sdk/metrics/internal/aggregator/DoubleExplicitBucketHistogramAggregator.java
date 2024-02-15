@@ -14,6 +14,7 @@ import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.DoubleExemplarData;
 import io.opentelemetry.sdk.metrics.data.HistogramPointData;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableHistogramData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableHistogramPointData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableMetricData;
@@ -87,6 +88,11 @@ public final class DoubleExplicitBucketHistogramAggregator
         metricDescriptor.getDescription(),
         metricDescriptor.getSourceInstrument().getUnit(),
         ImmutableHistogramData.create(temporality, pointData));
+  }
+
+  @Override
+  public MetricDataType getMetricDataType() {
+    return MetricDataType.HISTOGRAM;
   }
 
   static final class Handle extends AggregatorHandle<HistogramPointData, DoubleExemplarData> {

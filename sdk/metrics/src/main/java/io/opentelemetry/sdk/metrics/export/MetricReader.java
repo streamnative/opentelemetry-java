@@ -12,6 +12,7 @@ import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +51,16 @@ public interface MetricReader
    */
   default MemoryMode getMemoryMode() {
     return IMMUTABLE_DATA;
+  }
+
+  /**
+   * Returns the metric filter used by this reader.
+   *
+   * @return The {@link MetricFilter} used by this instance
+   * @since 1.36.0
+   */
+  default MetricFilter getMetricFilter() {
+    return MetricFilter.acceptAll();
   }
 
   /**

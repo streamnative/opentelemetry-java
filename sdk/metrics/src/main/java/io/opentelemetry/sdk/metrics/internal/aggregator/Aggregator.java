@@ -113,4 +113,11 @@ public interface Aggregator<T extends PointData, U extends ExemplarData> {
       MetricDescriptor metricDescriptor,
       Collection<T> points,
       AggregationTemporality temporality);
+
+  /**
+   * Returns the metric data type that this aggregation will produce.
+   *
+   * @return the {@link MetricDataType} that this {@code Aggregation} will produce.
+   */
+  MetricDataType getMetricDataType();
 }
