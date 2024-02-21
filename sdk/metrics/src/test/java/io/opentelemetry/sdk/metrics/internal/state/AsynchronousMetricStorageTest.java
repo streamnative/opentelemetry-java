@@ -111,7 +111,7 @@ class AsynchronousMetricStorageTest {
     longCounterStorage.record(createLong(0, 1, 2, Attributes.builder().put("key", "b").build()));
     longCounterStorage.record(createLong(0, 1, 3, Attributes.builder().put("key", "c").build()));
 
-    assertThat(longCounterStorage.collect(resource, scope, 0, testClock.nanoTime()))
+    assertThat(longCounterStorage.collect(resource, scope, 0, testClock.nanoTime(), metricFilter))
         .satisfies(
             metricData ->
                 assertThat(metricData)
@@ -139,7 +139,7 @@ class AsynchronousMetricStorageTest {
     doubleCounterStorage.record(
         createDouble(0, 1, 3.3, Attributes.builder().put("key", "c").build()));
 
-    assertThat(doubleCounterStorage.collect(resource, scope, 0, testClock.nanoTime()))
+    assertThat(doubleCounterStorage.collect(resource, scope, 0, testClock.nanoTime(), metricFilter))
         .satisfies(
             metricData ->
                 assertThat(metricData)
@@ -182,7 +182,7 @@ class AsynchronousMetricStorageTest {
     storage.record(
         createLong(0, 1, 1, Attributes.builder().put("key1", "a").put("key2", "b").build()));
 
-    assertThat(storage.collect(resource, scope, 0, testClock.nanoTime()))
+    assertThat(storage.collect(resource, scope, 0, testClock.nanoTime(), metricFilter))
         .satisfies(
             metricData ->
                 assertThat(metricData)
@@ -204,7 +204,7 @@ class AsynchronousMetricStorageTest {
           createLong(0, 1, 1, Attributes.builder().put("key" + i, "val").build()));
     }
 
-    assertThat(longCounterStorage.collect(resource, scope, 0, testClock.nanoTime()))
+    assertThat(longCounterStorage.collect(resource, scope, 0, testClock.nanoTime(), metricFilter))
         .satisfies(
             metricData ->
                 assertThat(metricData.getLongSumData().getPoints()).hasSize(CARDINALITY_LIMIT));
@@ -219,7 +219,7 @@ class AsynchronousMetricStorageTest {
     longCounterStorage.record(createLong(0, 1, 1, Attributes.builder().put("key1", "a").build()));
     longCounterStorage.record(createLong(0, 1, 2, Attributes.builder().put("key1", "a").build()));
 
-    assertThat(longCounterStorage.collect(resource, scope, 0, testClock.nanoTime()))
+    assertThat(longCounterStorage.collect(resource, scope, 0, testClock.nanoTime(), metricFilter))
         .satisfies(
             metricData ->
                 assertThat(metricData)
@@ -239,7 +239,7 @@ class AsynchronousMetricStorageTest {
 
     // Record measurement and collect at time 10
     longCounterStorage.record(createLong(0, 10, 3, Attributes.empty()));
-    assertThat(longCounterStorage.collect(resource, scope, 0, 0))
+    assertThat(longCounterStorage.collect(resource, scope, 0, 0, metricFilter))
         .hasLongSumSatisfying(
             sum ->
                 sum.isCumulative()
@@ -256,7 +256,7 @@ class AsynchronousMetricStorageTest {
     longCounterStorage.record(createLong(0, 30, 3, Attributes.empty()));
     longCounterStorage.record(
         createLong(0, 30, 6, Attributes.builder().put("key", "value1").build()));
-    assertThat(longCounterStorage.collect(resource, scope, 0, 0))
+    assertThat(longCounterStorage.collect(resource, scope, 0, 0, metricFilter))
         .hasLongSumSatisfying(
             sum ->
                 sum.isCumulative()
@@ -279,7 +279,7 @@ class AsynchronousMetricStorageTest {
     longCounterStorage.record(createLong(0, 35, 4, Attributes.empty()));
     longCounterStorage.record(
         createLong(0, 35, 5, Attributes.builder().put("key", "value2").build()));
-    assertThat(longCounterStorage.collect(resource, scope, 0, 0))
+    assertThat(longCounterStorage.collect(resource, scope, 0, 0, metricFilter))
         .hasLongSumSatisfying(
             sum ->
                 sum.isCumulative()
@@ -318,7 +318,7 @@ class AsynchronousMetricStorageTest {
 
     // Record measurement and collect at time 10
     longCounterStorage.record(createLong(0, 10, 3, Attributes.empty()));
-    assertThat(longCounterStorage.collect(resource, scope, 0, 0))
+    assertThat(longCounterStorage.collect(resource, scope, 0, 0, metricFilter))
         .hasLongSumSatisfying(
             sum ->
                 sum.isDelta()
@@ -335,7 +335,7 @@ class AsynchronousMetricStorageTest {
     longCounterStorage.record(createLong(0, 30, 3, Attributes.empty()));
     longCounterStorage.record(
         createLong(0, 30, 6, Attributes.builder().put("key", "value1").build()));
-    assertThat(longCounterStorage.collect(resource, scope, 0, 0))
+    assertThat(longCounterStorage.collect(resource, scope, 0, 0, metricFilter))
         .hasLongSumSatisfying(
             sum ->
                 sum.isDelta()
@@ -358,7 +358,7 @@ class AsynchronousMetricStorageTest {
     longCounterStorage.record(createLong(0, 35, 4, Attributes.empty()));
     longCounterStorage.record(
         createLong(0, 35, 5, Attributes.builder().put("key", "value2").build()));
-    assertThat(longCounterStorage.collect(resource, scope, 0, 0))
+    assertThat(longCounterStorage.collect(resource, scope, 0, 0, metricFilter))
         .hasLongSumSatisfying(
             sum ->
                 sum.isDelta()
@@ -386,7 +386,7 @@ class AsynchronousMetricStorageTest {
     longCounterStorage.record(createLong(0, 1, 3, Attributes.builder().put("key", "c").build()));
 
     MetricData firstCollectMetricData =
-        longCounterStorage.collect(resource, scope, 0, testClock.nanoTime());
+        longCounterStorage.collect(resource, scope, 0, testClock.nanoTime(), metricFilter);
     assertThat(firstCollectMetricData)
         .satisfies(
             metricData ->
@@ -411,7 +411,7 @@ class AsynchronousMetricStorageTest {
                                         .isInstanceOf(MutableLongPointData.class))));
 
     MetricData secondCollectMetricData =
-        longCounterStorage.collect(resource, scope, 0, testClock.nanoTime());
+        longCounterStorage.collect(resource, scope, 0, testClock.nanoTime(), metricFilter);
 
     Collection<? extends PointData> secondCollectPoints =
         secondCollectMetricData.getData().getPoints();

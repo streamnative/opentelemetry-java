@@ -20,6 +20,7 @@ import io.opentelemetry.sdk.metrics.internal.debug.SourceInfo;
 import io.opentelemetry.sdk.metrics.internal.descriptor.Advice;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
 import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.resources.Resource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -102,10 +103,10 @@ class MetricStorageRegistryTest {
 
     @Override
     public MetricData collect(
-        Resource resource,
-        InstrumentationScopeInfo instrumentationScopeInfo,
-        long startEpochNanos,
-        long epochNanos) {
+            Resource resource,
+            InstrumentationScopeInfo instrumentationScopeInfo,
+            long startEpochNanos,
+            long epochNanos, MetricFilter metricFilter) {
       return null;
     }
 

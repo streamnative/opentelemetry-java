@@ -15,6 +15,8 @@ import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.internal.ThrottlingLogger;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter.AttributesFilterResult;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import java.util.List;
 import java.util.Objects;
@@ -46,6 +48,7 @@ public final class SdkObservableMeasurement
   @Nullable private volatile RegisteredReader activeReader;
   private volatile long startEpochNanos;
   private volatile long epochNanos;
+  @Nullable private volatile MetricFilter metricFilter;
 
   private SdkObservableMeasurement(
       InstrumentationScopeInfo instrumentationScopeInfo,
@@ -88,10 +91,25 @@ public final class SdkObservableMeasurement
   }
 
   /**
+   * Set the active metric filter. {@link #unsetActiveFilter()} MUST be called
+   * after.
+   */
+  public void setActiveFilter(MetricFilter metricFilter) {
+    this.metricFilter = metricFilter;
+  }
+
+  /**
    * Unset the active reader. Called after {@link #setActiveReader(RegisteredReader, long, long)}.
    */
   public void unsetActiveReader() {
     this.activeReader = null;
+  }
+
+  /**
+   * Unset the active metric filter. Called after {@link #setActiveFilter(MetricFilter)}.
+   */
+  public void unsetActiveFilter() {
+    this.metricFilter = null;
   }
 
   InstrumentDescriptor getInstrumentDescriptor() {
@@ -167,7 +185,21 @@ public final class SdkObservableMeasurement
     RegisteredReader activeReader = this.activeReader;
     for (AsynchronousMetricStorage<?, ?> storage : storages) {
       if (storage.getRegisteredReader().equals(activeReader)) {
-        storage.record(measurement);
+        // TODO It obvious that if testMetric returns DROP, testAttributes would also do so
+        // for each attributes passed to it?
+        AttributesFilterResult attributesFilterResult = AttributesFilterResult.ACCEPT;
+        if (metricFilter != null) {
+          attributesFilterResult =
+              metricFilter.testAttributes(
+                  instrumentationScopeInfo,
+                  instrumentDescriptor.getName(),
+                  storage.getMetricDescriptor().getMetricDataType(),
+                  instrumentDescriptor.getUnit(),
+                  measurement.attributes());
+        }
+        if (attributesFilterResult == AttributesFilterResult.ACCEPT) {
+          storage.record(measurement);
+        }
       }
     }
   }

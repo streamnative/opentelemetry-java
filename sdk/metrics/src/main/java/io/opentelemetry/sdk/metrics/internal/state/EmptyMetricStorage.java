@@ -11,6 +11,7 @@ import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.metrics.internal.aggregator.EmptyMetricData;
 import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.resources.Resource;
 
 final class EmptyMetricStorage implements SynchronousMetricStorage {
@@ -27,10 +28,10 @@ final class EmptyMetricStorage implements SynchronousMetricStorage {
 
   @Override
   public MetricData collect(
-      Resource resource,
-      InstrumentationScopeInfo instrumentationScopeInfo,
-      long startEpochNanos,
-      long epochNanos) {
+          Resource resource,
+          InstrumentationScopeInfo instrumentationScopeInfo,
+          long startEpochNanos,
+          long epochNanos, MetricFilter metricFilter) {
     return EmptyMetricData.getInstance();
   }
 

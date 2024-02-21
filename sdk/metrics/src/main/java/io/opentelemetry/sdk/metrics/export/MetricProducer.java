@@ -38,7 +38,7 @@ public interface MetricProducer {
    * metrics that have been produced since the last time this method was called.
    *
    * @return a collection of produced {@link MetricData}s to be exported.
-   * @deprecated Use {@link #produce(Resource, MetricFilter)} instead.
+   * @deprecated Implement {@link #produce(Resource, MetricFilter)} instead.
    */
   @Deprecated
   default Collection<MetricData> produce(Resource resource) {
@@ -52,6 +52,10 @@ public interface MetricProducer {
    *
    * <p>Implementation SHOULD use the {@code metricFilter} as early as possible to gain as much
    * performance gain possible (memory allocation, internal metric fetching, etc.).
+   *
+   * <p>Default implementation is provided for backward compatability with existing
+   * metric producers which implement the produce method without the filter, as the
+   * SDK will use the method with the metric filter.
    *
    * @return a collection of produced {@link MetricData}s to be exported, filtered by {@code
    *     metricFilter}

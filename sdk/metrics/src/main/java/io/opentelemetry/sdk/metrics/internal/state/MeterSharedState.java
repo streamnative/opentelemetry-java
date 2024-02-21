@@ -11,8 +11,10 @@ import io.opentelemetry.api.internal.GuardedBy;
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.internal.aggregator.EmptyMetricData;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
 import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter.MetricFilterResult;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.RegisteredView;
 import java.util.ArrayList;
@@ -77,6 +79,7 @@ public class MeterSharedState {
   }
 
   // only visible for testing.
+
   /** Returns the {@link InstrumentationScopeInfo} for this {@code Meter}. */
   public InstrumentationScopeInfo getInstrumentationScopeInfo() {
     return instrumentationScopeInfo;
@@ -106,12 +109,22 @@ public class MeterSharedState {
           Objects.requireNonNull(readerStorageRegistries.get(registeredReader)).getStorages();
       List<MetricData> result = new ArrayList<>(storages.size());
       for (MetricStorage storage : storages) {
-        MetricData current =
-            storage.collect(
-                meterProviderSharedState.getResource(),
+        MetricFilterResult metricFilterResult =
+            metricFilter.testMetric(
                 getInstrumentationScopeInfo(),
-                meterProviderSharedState.getStartEpochNanos(),
-                epochNanos);
+                storage.getMetricDescriptor().getName(),
+                storage.getMetricDescriptor().getMetricDataType(),
+                storage.getMetricDescriptor().getSourceInstrument().getUnit());
+
+        MetricData current = EmptyMetricData.getInstance();
+        if (metricFilterResult != MetricFilterResult.DROP) {
+          current = storage.collect(
+              meterProviderSharedState.getResource(),
+              getInstrumentationScopeInfo(),
+              meterProviderSharedState.getStartEpochNanos(),
+              epochNanos,
+              metricFilter);
+        }
         // Ignore if the metric data doesn't have any data points, for example when aggregation is
         // Aggregation#drop()
         if (!current.isEmpty()) {

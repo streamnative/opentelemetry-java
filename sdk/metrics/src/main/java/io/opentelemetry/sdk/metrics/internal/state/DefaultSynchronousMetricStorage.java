@@ -22,6 +22,8 @@ import io.opentelemetry.sdk.metrics.internal.aggregator.Aggregator;
 import io.opentelemetry.sdk.metrics.internal.aggregator.AggregatorHandle;
 import io.opentelemetry.sdk.metrics.internal.aggregator.EmptyMetricData;
 import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter.AttributesFilterResult;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.AttributesProcessor;
 import io.opentelemetry.sdk.resources.Resource;
@@ -200,7 +202,8 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
       Resource resource,
       InstrumentationScopeInfo instrumentationScopeInfo,
       long startEpochNanos,
-      long epochNanos) {
+      long epochNanos,
+      MetricFilter metricFilter) {
     boolean reset = aggregationTemporality == DELTA;
     long start =
         aggregationTemporality == DELTA
@@ -279,7 +282,18 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
           }
 
           if (point != null) {
-            points.add(point);
+            AttributesFilterResult attributesFilterResult =
+                metricFilter.testAttributes(
+                    instrumentationScopeInfo,
+                    metricDescriptor.getName(),
+                    metricDescriptor.getMetricDataType(),
+                    metricDescriptor.getSourceInstrument().getUnit(),
+                    attributes);
+            if (attributesFilterResult == AttributesFilterResult.ACCEPT) {
+              points.add(point);
+            } else /* DROP */ {
+
+            }
           }
         });
 

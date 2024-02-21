@@ -30,7 +30,7 @@ public class InstrumentGarbageCollectionBenchmarkTest {
 
   /**
    * This test validates that in {@link MemoryMode#REUSABLE_DATA}, any {@link
-   * MetricStorage#collect(Resource, InstrumentationScopeInfo, long, long)} barely allocates memory
+   * MetricStorage#collect(Resource, InstrumentationScopeInfo, long, long, io.opentelemetry.sdk.metrics.internal.export.MetricFilter)} barely allocates memory
    * which is then subsequently garbage collected. It is done so comparatively to {@link
    * MemoryMode#IMMUTABLE_DATA},
    *

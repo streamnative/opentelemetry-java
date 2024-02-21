@@ -10,6 +10,7 @@ import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.resources.Resource;
 
 /**
@@ -40,13 +41,16 @@ public interface MetricStorage {
    * @param instrumentationScopeInfo The instrumentation scope generating the metrics.
    * @param startEpochNanos The start timestamp for this SDK.
    * @param epochNanos The timestamp for this collection.
+   * @param metricFilter The filter to apply to the metrics.
+   *
    * @return The {@link MetricData} from this collection period.
    */
   MetricData collect(
       Resource resource,
       InstrumentationScopeInfo instrumentationScopeInfo,
       long startEpochNanos,
-      long epochNanos);
+      long epochNanos,
+      MetricFilter metricFilter);
 
   /**
    * Determines whether this storage is an empty metric storage.
