@@ -100,7 +100,7 @@ public abstract class MetricDescriptor {
     return AggregationUtil.aggregationName(getView().getAggregation());
   }
 
-  /** The metric data type */
+  /** The metric data type. */
   public abstract MetricDataType getMetricDataType();
 
   /** Uses case-insensitive version of {@link #getName()}. */

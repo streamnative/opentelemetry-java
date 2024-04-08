@@ -144,9 +144,9 @@ public final class CallbackRegistration {
     }
   }
 
+  @SuppressWarnings("SameParameterValue")
   private static boolean allIs(
-      MetricFilterResult[] metricFilterResults,
-      MetricFilterResult sameFilterResult) {
+      MetricFilterResult[] metricFilterResults, MetricFilterResult sameFilterResult) {
     for (MetricFilterResult r : metricFilterResults) {
       if (r != sameFilterResult) {
         return false;

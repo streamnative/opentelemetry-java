@@ -22,9 +22,13 @@ import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.InstrumentValueType;
+import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.export.MetricReader;
+import io.opentelemetry.sdk.metrics.internal.debug.SourceInfo;
 import io.opentelemetry.sdk.metrics.internal.descriptor.Advice;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
+import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
 import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.ViewRegistry;
@@ -55,6 +59,12 @@ class CallbackRegistrationTest {
           InstrumentType.OBSERVABLE_COUNTER,
           InstrumentValueType.LONG,
           Advice.empty());
+  private static final MetricDescriptor LONG_DESCRIPTOR =
+      MetricDescriptor.create(
+          View.builder().build(),
+          SourceInfo.fromCurrentStack(),
+          LONG_INSTRUMENT,
+          MetricDataType.LONG_SUM);
   private static final InstrumentDescriptor DOUBLE_INSTRUMENT =
       InstrumentDescriptor.create(
           "double-counter",
@@ -63,6 +73,12 @@ class CallbackRegistrationTest {
           InstrumentType.OBSERVABLE_COUNTER,
           InstrumentValueType.LONG,
           Advice.empty());
+  private static final MetricDescriptor DOUBLE_DESCRIPTOR =
+      MetricDescriptor.create(
+          View.builder().build(),
+          SourceInfo.fromCurrentStack(),
+          DOUBLE_INSTRUMENT,
+          MetricDataType.LONG_SUM);
 
   @RegisterExtension
   LogCapturer logs = LogCapturer.create().captureForType(CallbackRegistration.class);
@@ -89,9 +105,13 @@ class CallbackRegistrationTest {
     measurement1 =
         SdkObservableMeasurement.create(
             INSTRUMENTATION_SCOPE_INFO, DOUBLE_INSTRUMENT, Collections.singletonList(storage1));
+    when(storage1.getMetricDescriptor()).thenReturn(DOUBLE_DESCRIPTOR);
+
     measurement2 =
         SdkObservableMeasurement.create(
             INSTRUMENTATION_SCOPE_INFO, LONG_INSTRUMENT, Arrays.asList(storage2, storage3));
+    when(storage2.getMetricDescriptor()).thenReturn(LONG_DESCRIPTOR);
+    when(storage3.getMetricDescriptor()).thenReturn(LONG_DESCRIPTOR);
   }
 
   @Test

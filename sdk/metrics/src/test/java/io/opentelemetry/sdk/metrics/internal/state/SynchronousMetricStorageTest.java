@@ -38,6 +38,7 @@ import io.opentelemetry.sdk.metrics.internal.descriptor.Advice;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
 import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
 import io.opentelemetry.sdk.metrics.internal.exemplar.ExemplarFilter;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.AttributesProcessor;
 import io.opentelemetry.sdk.metrics.internal.view.ViewRegistry;
@@ -62,6 +63,7 @@ import org.slf4j.event.Level;
 
 @SuppressLogger(DefaultSynchronousMetricStorage.class)
 public class SynchronousMetricStorageTest {
+  private static final MetricFilter metricFilter = MetricFilter.acceptAll();
   private static final Resource RESOURCE = Resource.empty();
   private static final InstrumentationScopeInfo INSTRUMENTATION_SCOPE_INFO =
       InstrumentationScopeInfo.builder("test").setVersion("1.0").build();

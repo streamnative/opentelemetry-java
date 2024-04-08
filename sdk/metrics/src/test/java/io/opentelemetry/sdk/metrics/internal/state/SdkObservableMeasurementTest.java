@@ -20,8 +20,13 @@ import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.InstrumentValueType;
+import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
+import io.opentelemetry.sdk.metrics.internal.debug.SourceInfo;
 import io.opentelemetry.sdk.metrics.internal.descriptor.Advice;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
+import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.ViewRegistry;
 import io.opentelemetry.sdk.testing.exporter.InMemoryMetricReader;
@@ -42,6 +47,7 @@ class SdkObservableMeasurementTest {
   private RegisteredReader registeredReader1;
   private SdkObservableMeasurement sdkObservableMeasurement;
   private ArgumentCaptor<Measurement> measurementArgumentCaptor;
+  private static final MetricFilter acceptAllFilter = MetricFilter.acceptAll();
 
   @SuppressWarnings("unchecked")
   private void setup(MemoryMode memoryMode) {
@@ -55,6 +61,12 @@ class SdkObservableMeasurementTest {
             InstrumentType.COUNTER,
             InstrumentValueType.LONG,
             Advice.empty());
+    MetricDescriptor metricDescriptor =
+        MetricDescriptor.create(
+            View.builder().build(),
+            SourceInfo.fromCurrentStack(),
+            instrumentDescriptor,
+            MetricDataType.LONG_SUM);
 
     InMemoryMetricReader reader1 =
         InMemoryMetricReader.builder()
@@ -69,8 +81,10 @@ class SdkObservableMeasurementTest {
     measurementArgumentCaptor = ArgumentCaptor.forClass(Measurement.class);
     mockAsyncStorage1 = mock(AsynchronousMetricStorage.class);
     when(mockAsyncStorage1.getRegisteredReader()).thenReturn(registeredReader1);
+    when(mockAsyncStorage1.getMetricDescriptor()).thenReturn(metricDescriptor);
     AsynchronousMetricStorage mockAsyncStorage2 = mock(AsynchronousMetricStorage.class);
     when(mockAsyncStorage2.getRegisteredReader()).thenReturn(registeredReader2);
+    when(mockAsyncStorage2.getMetricDescriptor()).thenReturn(metricDescriptor);
 
     sdkObservableMeasurement =
         SdkObservableMeasurement.create(
@@ -84,6 +98,7 @@ class SdkObservableMeasurementTest {
     setup(MemoryMode.IMMUTABLE_DATA);
 
     sdkObservableMeasurement.setActiveReader(registeredReader1, 0, 10);
+    sdkObservableMeasurement.setActiveFilter(acceptAllFilter);
 
     try {
       sdkObservableMeasurement.record(5);
@@ -96,6 +111,7 @@ class SdkObservableMeasurementTest {
       assertThat(passedMeasurement.epochNanos()).isEqualTo(10);
     } finally {
       sdkObservableMeasurement.unsetActiveReader();
+      sdkObservableMeasurement.unsetActiveFilter();
     }
   }
 
@@ -104,6 +120,7 @@ class SdkObservableMeasurementTest {
     setup(MemoryMode.IMMUTABLE_DATA);
 
     sdkObservableMeasurement.setActiveReader(registeredReader1, 0, 10);
+    sdkObservableMeasurement.setActiveFilter(acceptAllFilter);
 
     try {
       sdkObservableMeasurement.record(4.3);
@@ -116,6 +133,7 @@ class SdkObservableMeasurementTest {
       assertThat(passedMeasurement.epochNanos()).isEqualTo(10);
     } finally {
       sdkObservableMeasurement.unsetActiveReader();
+      sdkObservableMeasurement.unsetActiveFilter();
     }
   }
 
@@ -124,6 +142,7 @@ class SdkObservableMeasurementTest {
     setup(MemoryMode.REUSABLE_DATA);
 
     sdkObservableMeasurement.setActiveReader(registeredReader1, 0, 10);
+    sdkObservableMeasurement.setActiveFilter(acceptAllFilter);
 
     try {
       sdkObservableMeasurement.record(4.3);
@@ -148,6 +167,7 @@ class SdkObservableMeasurementTest {
       assertThat(secondMeasurement).isSameAs(firstMeasurement);
     } finally {
       sdkObservableMeasurement.unsetActiveReader();
+      sdkObservableMeasurement.unsetActiveFilter();
     }
   }
 
@@ -156,6 +176,7 @@ class SdkObservableMeasurementTest {
     setup(MemoryMode.REUSABLE_DATA);
 
     sdkObservableMeasurement.setActiveReader(registeredReader1, 0, 10);
+    sdkObservableMeasurement.setActiveFilter(acceptAllFilter);
 
     try {
       sdkObservableMeasurement.record(2);
@@ -180,6 +201,7 @@ class SdkObservableMeasurementTest {
       assertThat(secondMeasurement).isSameAs(firstMeasurement);
     } finally {
       sdkObservableMeasurement.unsetActiveReader();
+      sdkObservableMeasurement.unsetActiveFilter();
     }
   }
 
@@ -188,6 +210,7 @@ class SdkObservableMeasurementTest {
   void recordDouble_NaN() {
     setup(MemoryMode.REUSABLE_DATA);
     sdkObservableMeasurement.setActiveReader(registeredReader1, 0, 10);
+    sdkObservableMeasurement.setActiveFilter(acceptAllFilter);
     sdkObservableMeasurement.record(Double.NaN);
 
     verify(mockAsyncStorage1, never()).record(any());

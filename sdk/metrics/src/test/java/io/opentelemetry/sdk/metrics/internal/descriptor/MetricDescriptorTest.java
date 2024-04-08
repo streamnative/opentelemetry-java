@@ -5,6 +5,9 @@
 
 package io.opentelemetry.sdk.metrics.internal.descriptor;
 
+import static io.opentelemetry.sdk.metrics.data.MetricDataType.DOUBLE_SUM;
+import static io.opentelemetry.sdk.metrics.data.MetricDataType.HISTOGRAM;
+import static io.opentelemetry.sdk.metrics.data.MetricDataType.LONG_SUM;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.opentelemetry.sdk.metrics.Aggregation;
@@ -29,12 +32,13 @@ class MetricDescriptorTest {
             InstrumentValueType.DOUBLE,
             Advice.empty());
     MetricDescriptor simple =
-        MetricDescriptor.create(view, SourceInfo.fromCurrentStack(), instrument);
+        MetricDescriptor.create(view, SourceInfo.fromCurrentStack(), instrument, DOUBLE_SUM);
     assertThat(simple.getName()).isEqualTo("name");
     assertThat(simple.getDescription()).isEqualTo("description");
     assertThat(simple.getView()).isEqualTo(view);
     assertThat(simple.getSourceInstrument()).isEqualTo(instrument);
     assertThat(simple.getAggregationName()).isEqualTo("default");
+    assertThat(simple.getMetricDataType()).isEqualTo(DOUBLE_SUM);
   }
 
   @Test
@@ -49,12 +53,13 @@ class MetricDescriptorTest {
             InstrumentValueType.DOUBLE,
             Advice.empty());
     MetricDescriptor simple =
-        MetricDescriptor.create(view, SourceInfo.fromCurrentStack(), instrument);
+        MetricDescriptor.create(view, SourceInfo.fromCurrentStack(), instrument, HISTOGRAM);
     assertThat(simple.getName()).isEqualTo("new_name");
     assertThat(simple.getDescription()).isEqualTo("new_description");
     assertThat(simple.getSourceInstrument()).isEqualTo(instrument);
     assertThat(simple.getView()).isEqualTo(view);
     assertThat(simple.getAggregationName()).isEqualTo("default");
+    assertThat(simple.getMetricDataType()).isEqualTo(HISTOGRAM);
   }
 
   @Test
@@ -69,7 +74,7 @@ class MetricDescriptorTest {
             InstrumentValueType.DOUBLE,
             Advice.empty());
     MetricDescriptor descriptor1 =
-        MetricDescriptor.create(view, SourceInfo.fromCurrentStack(), instrument);
+        MetricDescriptor.create(view, SourceInfo.fromCurrentStack(), instrument, DOUBLE_SUM);
     // Same name (case-insensitive), description, view, source name (case-insensitive), source unit,
     // source description, source type, and source value type is equal. Advice is not part of
     // equals.
@@ -83,26 +88,32 @@ class MetricDescriptorTest {
                 "unit",
                 InstrumentType.COUNTER,
                 InstrumentValueType.DOUBLE,
-                Advice.builder().setExplicitBucketBoundaries(Arrays.asList(1.0, 2.0)).build()));
+                Advice.builder().setExplicitBucketBoundaries(Arrays.asList(1.0, 2.0)).build()),
+            DOUBLE_SUM);
     assertThat(descriptor1).isEqualTo(descriptor2).hasSameHashCodeAs(descriptor2);
     // Different name overridden by view is not equal
     descriptor2 =
         MetricDescriptor.create(
-            View.builder().setName("bar").build(), SourceInfo.fromCurrentStack(), instrument);
+            View.builder().setName("bar").build(),
+            SourceInfo.fromCurrentStack(),
+            instrument,
+            DOUBLE_SUM);
     assertThat(descriptor1).isNotEqualTo(descriptor2).doesNotHaveSameHashCodeAs(descriptor2);
     // Different description overridden by view is not equal
     descriptor2 =
         MetricDescriptor.create(
             View.builder().setDescription("foo").build(),
             SourceInfo.fromCurrentStack(),
-            instrument);
+            instrument,
+            DOUBLE_SUM);
     assertThat(descriptor1).isNotEqualTo(descriptor2).doesNotHaveSameHashCodeAs(descriptor2);
     // Different aggregation overridden by view is not equal
     descriptor2 =
         MetricDescriptor.create(
             View.builder().setAggregation(Aggregation.lastValue()).build(),
             SourceInfo.fromCurrentStack(),
-            instrument);
+            instrument,
+            DOUBLE_SUM);
     assertThat(descriptor1).isNotEqualTo(descriptor2).doesNotHaveSameHashCodeAs(descriptor2);
     // Different instrument source name is not equal
     descriptor2 =
@@ -115,7 +126,8 @@ class MetricDescriptorTest {
                 "unit",
                 InstrumentType.COUNTER,
                 InstrumentValueType.DOUBLE,
-                Advice.empty()));
+                Advice.empty()),
+            DOUBLE_SUM);
     assertThat(descriptor1).isNotEqualTo(descriptor2).doesNotHaveSameHashCodeAs(descriptor2);
     // Different instrument source description is not equal
     descriptor2 =
@@ -128,7 +140,8 @@ class MetricDescriptorTest {
                 "unit",
                 InstrumentType.COUNTER,
                 InstrumentValueType.DOUBLE,
-                Advice.empty()));
+                Advice.empty()),
+            DOUBLE_SUM);
     assertThat(descriptor1).isNotEqualTo(descriptor2).doesNotHaveSameHashCodeAs(descriptor2);
     // Different instrument source unit is not equal
     descriptor2 =
@@ -141,7 +154,8 @@ class MetricDescriptorTest {
                 "foo",
                 InstrumentType.COUNTER,
                 InstrumentValueType.DOUBLE,
-                Advice.empty()));
+                Advice.empty()),
+            DOUBLE_SUM);
     assertThat(descriptor1).isNotEqualTo(descriptor2).doesNotHaveSameHashCodeAs(descriptor2);
     // Different instrument source type is not equal
     descriptor2 =
@@ -154,7 +168,8 @@ class MetricDescriptorTest {
                 "unit",
                 InstrumentType.HISTOGRAM,
                 InstrumentValueType.DOUBLE,
-                Advice.empty()));
+                Advice.empty()),
+            HISTOGRAM);
     assertThat(descriptor1).isNotEqualTo(descriptor2).doesNotHaveSameHashCodeAs(descriptor2);
     // Different instrument source value type is not equal
     descriptor2 =
@@ -167,7 +182,8 @@ class MetricDescriptorTest {
                 "unit",
                 InstrumentType.COUNTER,
                 InstrumentValueType.LONG,
-                Advice.empty()));
+                Advice.empty()),
+            LONG_SUM);
     assertThat(descriptor1).isNotEqualTo(descriptor2).doesNotHaveSameHashCodeAs(descriptor2);
   }
 }

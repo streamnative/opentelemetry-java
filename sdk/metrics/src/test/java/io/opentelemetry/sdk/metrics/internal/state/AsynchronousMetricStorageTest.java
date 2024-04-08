@@ -30,6 +30,7 @@ import io.opentelemetry.sdk.metrics.internal.data.MutableLongPointData;
 import io.opentelemetry.sdk.metrics.internal.debug.SourceInfo;
 import io.opentelemetry.sdk.metrics.internal.descriptor.Advice;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.AttributesProcessor;
 import io.opentelemetry.sdk.metrics.internal.view.RegisteredView;
@@ -58,6 +59,8 @@ class AsynchronousMetricStorageTest {
   private final Resource resource = Resource.empty();
   private final InstrumentationScopeInfo scope = InstrumentationScopeInfo.empty();
   private final InstrumentSelector selector = InstrumentSelector.builder().setName("*").build();
+  private final MetricFilter metricFilter = MetricFilter.acceptAll();
+
   private final RegisteredView registeredView =
       RegisteredView.create(
           selector,

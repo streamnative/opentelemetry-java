@@ -5,6 +5,8 @@
 
 package io.opentelemetry.sdk.metrics.internal.state;
 
+import static io.opentelemetry.sdk.metrics.data.MetricDataType.DOUBLE_GAUGE;
+import static io.opentelemetry.sdk.metrics.data.MetricDataType.LONG_SUM;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.netmikey.logunit.api.LogCapturer;
@@ -16,6 +18,7 @@ import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.InstrumentValueType;
 import io.opentelemetry.sdk.metrics.View;
 import io.opentelemetry.sdk.metrics.data.MetricData;
+import io.opentelemetry.sdk.metrics.data.MetricDataType;
 import io.opentelemetry.sdk.metrics.internal.debug.SourceInfo;
 import io.opentelemetry.sdk.metrics.internal.descriptor.Advice;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
@@ -29,13 +32,13 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 @SuppressLogger(MetricStorageRegistry.class)
 class MetricStorageRegistryTest {
   private static final MetricDescriptor SYNC_DESCRIPTOR =
-      descriptor("sync", "description", InstrumentType.COUNTER);
+      descriptor("sync", "description", InstrumentType.COUNTER, LONG_SUM);
   private static final MetricDescriptor OTHER_SYNC_DESCRIPTOR =
-      descriptor("sync", "other_description", InstrumentType.COUNTER);
+      descriptor("sync", "other_description", InstrumentType.COUNTER, LONG_SUM);
   private static final MetricDescriptor ASYNC_DESCRIPTOR =
-      descriptor("async", "description", InstrumentType.OBSERVABLE_GAUGE);
+      descriptor("async", "description", InstrumentType.OBSERVABLE_GAUGE, DOUBLE_GAUGE);
   private static final MetricDescriptor OTHER_ASYNC_DESCRIPTOR =
-      descriptor("async", "other_description", InstrumentType.OBSERVABLE_GAUGE);
+      descriptor("async", "other_description", InstrumentType.OBSERVABLE_GAUGE, DOUBLE_GAUGE);
 
   private final MetricStorageRegistry metricStorageRegistry = new MetricStorageRegistry();
 
@@ -81,12 +84,16 @@ class MetricStorageRegistryTest {
   }
 
   private static MetricDescriptor descriptor(
-      String name, String description, InstrumentType instrumentType) {
+      String name,
+      String description,
+      InstrumentType instrumentType,
+      MetricDataType metricDataType) {
     return MetricDescriptor.create(
         View.builder().build(),
         SourceInfo.fromCurrentStack(),
         InstrumentDescriptor.create(
-            name, description, "1", instrumentType, InstrumentValueType.DOUBLE, Advice.empty()));
+            name, description, "1", instrumentType, InstrumentValueType.DOUBLE, Advice.empty()),
+        metricDataType);
   }
 
   private static final class TestMetricStorage implements MetricStorage, WriteableMetricStorage {
