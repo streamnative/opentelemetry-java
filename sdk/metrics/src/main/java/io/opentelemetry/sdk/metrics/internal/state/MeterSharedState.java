@@ -118,12 +118,13 @@ public class MeterSharedState {
 
         MetricData current = EmptyMetricData.getInstance();
         if (metricFilterResult != MetricFilterResult.DROP) {
-          current = storage.collect(
-              meterProviderSharedState.getResource(),
-              getInstrumentationScopeInfo(),
-              meterProviderSharedState.getStartEpochNanos(),
-              epochNanos,
-              metricFilter);
+          current =
+              storage.collect(
+                  meterProviderSharedState.getResource(),
+                  getInstrumentationScopeInfo(),
+                  meterProviderSharedState.getStartEpochNanos(),
+                  epochNanos,
+                  metricFilter);
         }
         // Ignore if the metric data doesn't have any data points, for example when aggregation is
         // Aggregation#drop()

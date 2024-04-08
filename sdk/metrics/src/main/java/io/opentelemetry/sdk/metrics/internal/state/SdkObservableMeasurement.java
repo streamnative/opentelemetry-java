@@ -5,6 +5,7 @@
 
 package io.opentelemetry.sdk.metrics.internal.state;
 
+import static io.opentelemetry.sdk.metrics.data.AggregationTemporality.DELTA;
 import static io.opentelemetry.sdk.metrics.internal.state.ImmutableMeasurement.createDouble;
 import static io.opentelemetry.sdk.metrics.internal.state.ImmutableMeasurement.createLong;
 
@@ -90,10 +91,7 @@ public final class SdkObservableMeasurement
     this.epochNanos = epochNanos;
   }
 
-  /**
-   * Set the active metric filter. {@link #unsetActiveFilter()} MUST be called
-   * after.
-   */
+  /** Set the active metric filter. {@link #unsetActiveFilter()} MUST be called after. */
   public void setActiveFilter(MetricFilter metricFilter) {
     this.metricFilter = metricFilter;
   }
@@ -105,9 +103,7 @@ public final class SdkObservableMeasurement
     this.activeReader = null;
   }
 
-  /**
-   * Unset the active metric filter. Called after {@link #setActiveFilter(MetricFilter)}.
-   */
+  /** Unset the active metric filter. Called after {@link #setActiveFilter(MetricFilter)}. */
   public void unsetActiveFilter() {
     this.metricFilter = null;
   }
@@ -185,20 +181,26 @@ public final class SdkObservableMeasurement
     RegisteredReader activeReader = this.activeReader;
     for (AsynchronousMetricStorage<?, ?> storage : storages) {
       if (storage.getRegisteredReader().equals(activeReader)) {
-        // TODO It obvious that if testMetric returns DROP, testAttributes would also do so
-        // for each attributes passed to it?
-        AttributesFilterResult attributesFilterResult = AttributesFilterResult.ACCEPT;
+        AttributesFilterResult attributesFilterResult;
         if (metricFilter != null) {
-          attributesFilterResult =
-              metricFilter.testAttributes(
-                  instrumentationScopeInfo,
-                  instrumentDescriptor.getName(),
-                  storage.getMetricDescriptor().getMetricDataType(),
-                  instrumentDescriptor.getUnit(),
-                  measurement.attributes());
-        }
-        if (attributesFilterResult == AttributesFilterResult.ACCEPT) {
-          storage.record(measurement);
+          if (storage.getAggregationTemporality() == DELTA) {
+            // Delta temporality requires all points to be recorded because the filter can change
+            // to suddenly return a value for a metric, and it's delta requires knowing the last
+            // point, even if it was filtered out
+            attributesFilterResult = AttributesFilterResult.ACCEPT;
+          } else /* CUMULATIVE */ {
+            attributesFilterResult =
+                metricFilter.testAttributes(
+                    instrumentationScopeInfo,
+                    instrumentDescriptor.getName(),
+                    storage.getMetricDescriptor().getMetricDataType(),
+                    instrumentDescriptor.getUnit(),
+                    measurement.attributes());
+          }
+
+          if (attributesFilterResult == AttributesFilterResult.ACCEPT) {
+            storage.record(measurement);
+          }
         }
       }
     }

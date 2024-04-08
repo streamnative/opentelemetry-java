@@ -42,7 +42,6 @@ public interface MetricStorage {
    * @param startEpochNanos The start timestamp for this SDK.
    * @param epochNanos The timestamp for this collection.
    * @param metricFilter The filter to apply to the metrics.
-   *
    * @return The {@link MetricData} from this collection period.
    */
   MetricData collect(

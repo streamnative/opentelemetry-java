@@ -145,7 +145,8 @@ public class SynchronousMetricStorageTest {
             spyAttributesProcessor,
             CARDINALITY_LIMIT);
     storage.recordDouble(1, attributes, Context.root());
-    MetricData md = storage.collect(RESOURCE, INSTRUMENTATION_SCOPE_INFO, 0, testClock.now(), metricFilter);
+    MetricData md =
+        storage.collect(RESOURCE, INSTRUMENTATION_SCOPE_INFO, 0, testClock.now(), metricFilter);
     assertThat(md)
         .hasDoubleSumSatisfying(
             sum ->
@@ -301,7 +302,8 @@ public class SynchronousMetricStorageTest {
     verify(aggregator, times(3)).createHandle();
     assertThat(storage.getAggregatorHandlePool()).hasSize(0);
 
-    MetricData metricData = storage.collect(RESOURCE, INSTRUMENTATION_SCOPE_INFO, 0, 35, metricFilter);
+    MetricData metricData =
+        storage.collect(RESOURCE, INSTRUMENTATION_SCOPE_INFO, 0, 35, metricFilter);
     assertThat(metricData).hasDoubleSumSatisfying(DoubleSumAssert::isDelta);
     assertThat(metricData)
         .hasDoubleSumSatisfying(
@@ -535,7 +537,8 @@ public class SynchronousMetricStorageTest {
     verify(aggregator, times(CARDINALITY_LIMIT - 1)).createHandle();
 
     // First collect
-    MetricData metricData = storage.collect(RESOURCE, INSTRUMENTATION_SCOPE_INFO, 0, 10, metricFilter);
+    MetricData metricData =
+        storage.collect(RESOURCE, INSTRUMENTATION_SCOPE_INFO, 0, 10, metricFilter);
 
     assertThat(metricData)
         .hasDoubleSumSatisfying(
@@ -636,7 +639,8 @@ public class SynchronousMetricStorageTest {
           3, Attributes.builder().put("key", "value" + i).build(), Context.current());
     }
 
-    MetricData metricData = storage.collect(RESOURCE, INSTRUMENTATION_SCOPE_INFO, 20, 30, metricFilter);
+    MetricData metricData =
+        storage.collect(RESOURCE, INSTRUMENTATION_SCOPE_INFO, 20, 30, metricFilter);
 
     assertOnlyOverflowWasRecorded(metricData, 20, 30, 15 * 3);
 
@@ -771,7 +775,8 @@ public class SynchronousMetricStorageTest {
               while (latch.getCount() != 0 || extraCollects <= 1) {
                 Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(1));
                 MetricData metricData =
-                    storage.collect(Resource.empty(), InstrumentationScopeInfo.empty(), 0, 1, metricFilter);
+                    storage.collect(
+                        Resource.empty(), InstrumentationScopeInfo.empty(), 0, 1, metricFilter);
                 if (!metricData.isEmpty()) {
                   metricData.getDoubleSumData().getPoints().stream()
                       .findFirst()

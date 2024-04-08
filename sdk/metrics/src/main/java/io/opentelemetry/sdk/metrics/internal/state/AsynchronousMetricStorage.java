@@ -6,6 +6,7 @@
 package io.opentelemetry.sdk.metrics.internal.state;
 
 import static io.opentelemetry.sdk.common.export.MemoryMode.REUSABLE_DATA;
+import static io.opentelemetry.sdk.metrics.internal.export.MetricFilter.AttributesFilterResult.ACCEPT;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.ObservableDoubleMeasurement;
@@ -25,6 +26,7 @@ import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
 import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
 import io.opentelemetry.sdk.metrics.internal.exemplar.ExemplarFilter;
 import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter.AttributesFilterResult;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
 import io.opentelemetry.sdk.metrics.internal.view.AttributesProcessor;
 import io.opentelemetry.sdk.metrics.internal.view.RegisteredView;
@@ -193,8 +195,7 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
       InstrumentationScopeInfo instrumentationScopeInfo,
       long startEpochNanos,
       long epochNanos,
-      /* The filter is applied at CallbackRegistration and SdkObservableMeasurement */
-      MetricFilter ignored) {
+      MetricFilter metricFilter) {
     if (memoryMode == REUSABLE_DATA) {
       // Collect can not run concurrently for same reader, hence we safely assume
       // the previous collect result has been used and done with
@@ -239,7 +240,21 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
               }
             }
 
-            deltaPoints.add(deltaPoint);
+            AttributesFilterResult attributesFilterResult =
+                metricFilter.testAttributes(
+                    instrumentationScopeInfo,
+                    metricDescriptor.getName(),
+                    metricDescriptor.getMetricDataType(),
+                    metricDescriptor.getSourceInstrument().getUnit(),
+                    deltaPoint.getAttributes());
+
+            if (attributesFilterResult == ACCEPT) {
+              deltaPoints.add(deltaPoint);
+            } else /* DROP */ {
+              if (memoryMode == REUSABLE_DATA) {
+                reusablePointsPool.returnObject(deltaPoint);
+              }
+            }
           });
 
       if (memoryMode == REUSABLE_DATA) {
@@ -270,5 +285,9 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
   @Override
   public boolean isEmpty() {
     return aggregator == Aggregator.drop();
+  }
+
+  AggregationTemporality getAggregationTemporality() {
+    return aggregationTemporality;
   }
 }

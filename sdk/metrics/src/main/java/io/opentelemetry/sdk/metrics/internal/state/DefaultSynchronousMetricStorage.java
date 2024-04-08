@@ -7,7 +7,10 @@ package io.opentelemetry.sdk.metrics.internal.state;
 
 import static io.opentelemetry.sdk.common.export.MemoryMode.IMMUTABLE_DATA;
 import static io.opentelemetry.sdk.common.export.MemoryMode.REUSABLE_DATA;
+import static io.opentelemetry.sdk.metrics.data.AggregationTemporality.CUMULATIVE;
 import static io.opentelemetry.sdk.metrics.data.AggregationTemporality.DELTA;
+import static io.opentelemetry.sdk.metrics.internal.export.MetricFilter.AttributesFilterResult.ACCEPT;
+import static io.opentelemetry.sdk.metrics.internal.export.MetricFilter.AttributesFilterResult.DROP;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.context.Context;
@@ -270,6 +273,24 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
           if (!handle.hasRecordedValues()) {
             return;
           }
+
+          AttributesFilterResult attributesFilterResult =
+              metricFilter.testAttributes(
+                  instrumentationScopeInfo,
+                  metricDescriptor.getName(),
+                  metricDescriptor.getMetricDataType(),
+                  metricDescriptor.getSourceInstrument().getUnit(),
+                  attributes);
+
+          // We can short-circuit the aggregation if the filter tell us to drop this
+          // Attributes AND we are in CUMULATIVE aggregation temporality.
+          // In DELTA aggregation temporality we need to keep resetting even
+          // if we need to drop, since next time the filter can change (be ACCEPT), and we must
+          // have the correct delta value when that happens.
+          if (attributesFilterResult == DROP && aggregationTemporality == CUMULATIVE) {
+            return;
+          }
+
           T point = handle.aggregateThenMaybeReset(start, epochNanos, attributes, reset);
 
           if (reset && memoryMode == IMMUTABLE_DATA) {
@@ -282,17 +303,8 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
           }
 
           if (point != null) {
-            AttributesFilterResult attributesFilterResult =
-                metricFilter.testAttributes(
-                    instrumentationScopeInfo,
-                    metricDescriptor.getName(),
-                    metricDescriptor.getMetricDataType(),
-                    metricDescriptor.getSourceInstrument().getUnit(),
-                    attributes);
-            if (attributesFilterResult == AttributesFilterResult.ACCEPT) {
+            if (attributesFilterResult == ACCEPT) {
               points.add(point);
-            } else /* DROP */ {
-
             }
           }
         });

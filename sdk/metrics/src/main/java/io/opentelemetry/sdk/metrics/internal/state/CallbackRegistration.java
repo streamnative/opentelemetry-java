@@ -6,14 +6,16 @@
 package io.opentelemetry.sdk.metrics.internal.state;
 
 import static io.opentelemetry.sdk.internal.ThrowableUtil.propagateIfFatal;
+import static io.opentelemetry.sdk.metrics.data.AggregationTemporality.DELTA;
+import static io.opentelemetry.sdk.metrics.internal.export.MetricFilter.MetricFilterResult.DROP;
 import static java.util.stream.Collectors.toList;
 
 import io.opentelemetry.sdk.internal.ThrottlingLogger;
 import io.opentelemetry.sdk.metrics.internal.descriptor.InstrumentDescriptor;
+import io.opentelemetry.sdk.metrics.internal.descriptor.MetricDescriptor;
 import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.MetricFilter.MetricFilterResult;
 import io.opentelemetry.sdk.metrics.internal.export.RegisteredReader;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,7 +43,7 @@ public final class CallbackRegistration {
         observableMeasurements.stream()
             .map(SdkObservableMeasurement::getInstrumentDescriptor)
             .collect(toList());
-    if (instrumentDescriptors.size() == 0) {
+    if (instrumentDescriptors.isEmpty()) {
       throw new IllegalStateException("Callback with no instruments is not allowed");
     }
     this.hasStorages =
@@ -81,49 +83,75 @@ public final class CallbackRegistration {
     }
 
     int expectedMetricCount = 0;
+    boolean onlyCumulativeTemporalityStorages = true;
     for (SdkObservableMeasurement measurement : observableMeasurements) {
       expectedMetricCount += measurement.getStorages().size();
+
+      for (AsynchronousMetricStorage<?, ?> asynchronousMetricStorage : measurement.getStorages()) {
+        if (asynchronousMetricStorage.getAggregationTemporality() == DELTA) {
+          onlyCumulativeTemporalityStorages = false;
+          break;
+        }
+      }
     }
 
     // FIXME: What happens when the aggregation is drop ==> empty aggregation?
-    MetricFilterResult[] metricFilterResults = new MetricFilterResult[expectedMetricCount];
-    for (SdkObservableMeasurement sdkObservableMeasurement : observableMeasurements) {
-      sdkObservableMeasurement.getStorages().stream()
-          .map(AsynchronousMetricStorage::getMetricDescriptor)
-          .forEach(metricDescriptor ->
-              metricFilterResults[metricFilterResults.length] =
-                  metricFilter.testMetric(
-                      sdkObservableMeasurement.getInstrumentationScopeInfo(),
-                      metricDescriptor.getName(),
-                      metricDescriptor.getMetricDataType(),
-                      metricDescriptor.getSourceInstrument().getUnit()));
+    // Delta temporality requires all points to be recorded because the filter can change
+    // to suddenly return a value for a metric, and it's delta requires knowing the last point,
+    // even if it was filtered out
+    if (onlyCumulativeTemporalityStorages) {
+      MetricFilterResult[] metricFilterResults = new MetricFilterResult[expectedMetricCount];
+      int i = 0;
+      for (SdkObservableMeasurement sdkObservableMeasurement : observableMeasurements) {
+        for (AsynchronousMetricStorage<?, ?> asynchronousMetricStorage :
+            sdkObservableMeasurement.getStorages()) {
+          MetricDescriptor metricDescriptor = asynchronousMetricStorage.getMetricDescriptor();
 
-      if (Arrays.stream(metricFilterResults)
-          .allMatch(result -> result == MetricFilterResult.DROP)) {
-        // If all the metrics are to be dropped, we don't need to invoke the callback
-        return;
-      }
+          metricFilterResults[i++] =
+              metricFilter.testMetric(
+                  sdkObservableMeasurement.getInstrumentationScopeInfo(),
+                  metricDescriptor.getName(),
+                  metricDescriptor.getMetricDataType(),
+                  metricDescriptor.getSourceInstrument().getUnit());
+        }
 
-      // Set the active reader on each observable measurement so that measurements are only recorded
-      // to relevant storages
-      observableMeasurements.forEach(
-          observableMeasurement -> {
-              observableMeasurement.setActiveReader(reader, startEpochNanos, epochNanos);
-              observableMeasurement.setActiveFilter(metricFilter);
-          });
-      try {
-        callback.run();
-      } catch (Throwable e) {
-        propagateIfFatal(e);
-        throttlingLogger.log(
-            Level.WARNING, "An exception occurred invoking callback for " + this + ".", e);
-      } finally {
-        observableMeasurements.forEach(observableMeasurement -> {
-            observableMeasurement.unsetActiveReader();
-            observableMeasurement.unsetActiveFilter();
-        });
-
+        if (allIs(metricFilterResults, DROP)) {
+          // If all the metrics are to be dropped, we don't need to invoke the callback
+          return;
+        }
       }
     }
+
+    // Set the active reader on each observable measurement so that measurements are only recorded
+    // to relevant storages
+    observableMeasurements.forEach(
+        observableMeasurement -> {
+          observableMeasurement.setActiveReader(reader, startEpochNanos, epochNanos);
+          observableMeasurement.setActiveFilter(metricFilter);
+        });
+    try {
+      callback.run();
+    } catch (Throwable e) {
+      propagateIfFatal(e);
+      throttlingLogger.log(
+          Level.WARNING, "An exception occurred invoking callback for " + this + ".", e);
+    } finally {
+      observableMeasurements.forEach(
+          observableMeasurement -> {
+            observableMeasurement.unsetActiveReader();
+            observableMeasurement.unsetActiveFilter();
+          });
+    }
+  }
+
+  private static boolean allIs(
+      MetricFilterResult[] metricFilterResults,
+      MetricFilterResult sameFilterResult) {
+    for (MetricFilterResult r : metricFilterResults) {
+      if (r != sameFilterResult) {
+        return false;
+      }
+    }
+    return true;
   }
 }

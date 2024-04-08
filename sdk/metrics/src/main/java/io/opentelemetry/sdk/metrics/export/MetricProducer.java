@@ -53,9 +53,9 @@ public interface MetricProducer {
    * <p>Implementation SHOULD use the {@code metricFilter} as early as possible to gain as much
    * performance gain possible (memory allocation, internal metric fetching, etc.).
    *
-   * <p>Default implementation is provided for backward compatability with existing
-   * metric producers which implement the produce method without the filter, as the
-   * SDK will use the method with the metric filter.
+   * <p>Default implementation is provided for backward compatability with existing metric producers
+   * which implement the produce method without the filter, as the SDK will use the method with the
+   * metric filter.
    *
    * @return a collection of produced {@link MetricData}s to be exported, filtered by {@code
    *     metricFilter}
