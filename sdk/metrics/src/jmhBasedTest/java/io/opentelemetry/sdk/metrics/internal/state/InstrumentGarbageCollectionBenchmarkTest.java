@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
+import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.resources.Resource;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,10 +31,9 @@ public class InstrumentGarbageCollectionBenchmarkTest {
 
   /**
    * This test validates that in {@link MemoryMode#REUSABLE_DATA}, any {@link
-   * MetricStorage#collect(Resource, InstrumentationScopeInfo, long, long,
-   * io.opentelemetry.sdk.metrics.internal.export.MetricFilter)} barely allocates memory which is
-   * then subsequently garbage collected. It is done so comparatively to {@link
-   * MemoryMode#IMMUTABLE_DATA},
+   * MetricStorage#collect(Resource, InstrumentationScopeInfo, long, long, MetricFilter)} barely
+   * allocates memory which is then subsequently garbage collected. It is done so comparatively
+   * to {@link MemoryMode#IMMUTABLE_DATA},
    *
    * <p>It runs the JMH test {@link InstrumentGarbageCollectionBenchmark} with GC profiler, and
    * measures for each parameter combination the garbage collector normalized rate (bytes allocated

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package io.opentelemetry.sdk.metrics.export;
+package io.opentelemetry.sdk.metrics.internal.export;
 
 import io.opentelemetry.sdk.metrics.data.Data;
 import io.opentelemetry.sdk.metrics.data.DoublePointData;
@@ -20,16 +20,20 @@ import io.opentelemetry.sdk.metrics.internal.data.ImmutableHistogramData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableMetricData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableSumData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableSummaryData;
-import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.metrics.internal.export.MetricFilter.AttributesFilterResult;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-final class DefaultMetricFilterExecutor {
+/***
+ * 
+ *  <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
+ *  at any time.
+ */
+public final class DefaultMetricFilterExecutor {
 
-  static Collection<MetricData> filter(
+  public static Collection<MetricData> filter(
       Collection<MetricData> metricDataCollection, MetricFilter metricFilter) {
 
     return metricDataCollection.stream()

@@ -11,7 +11,6 @@ import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.metrics.export.MetricProducer;
 import io.opentelemetry.sdk.metrics.export.MetricReader;
-import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.resources.Resource;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,9 +38,8 @@ public final class OpenCensusMetricProducer implements MetricProducer {
   }
 
   @Override
-  public Collection<MetricData> produce(Resource resource, MetricFilter metricFilter) {
+  public Collection<MetricData> produce(Resource resource) {
     List<MetricData> result = new ArrayList<>();
-    // FIXME Use metricFilter to filter metrics
     openCensusMetricStorage
         .getAllMetricProducer()
         .forEach(

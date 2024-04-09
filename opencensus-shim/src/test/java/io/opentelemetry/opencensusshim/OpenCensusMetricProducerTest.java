@@ -22,7 +22,6 @@ import io.opencensus.trace.TraceOptions;
 import io.opencensus.trace.Tracestate;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.metrics.export.MetricProducer;
-import io.opentelemetry.sdk.metrics.internal.export.MetricFilter;
 import io.opentelemetry.sdk.resources.Resource;
 import java.time.Duration;
 import java.util.Arrays;
@@ -50,7 +49,7 @@ class OpenCensusMetricProducerTest {
       SpanContext.create(TRACE_ID, SPAN_ID, TraceOptions.DEFAULT, Tracestate.builder().build());
 
   @Test
-  void extractHistogram() throws InterruptedException {
+  void extractHistogram() {
     View view =
         View.create(
             View.Name.create("task_latency_distribution"),
@@ -69,8 +68,7 @@ class OpenCensusMetricProducerTest {
         .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () ->
-                // FIXME Fix this test
-                assertThat(openCensusMetrics.produce(Resource.empty(), MetricFilter.acceptAll()))
+                assertThat(openCensusMetrics.produce(Resource.empty()))
                     .satisfiesExactly(
                         metric ->
                             assertThat(metric)
